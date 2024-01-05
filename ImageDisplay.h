@@ -5,18 +5,19 @@
 
 class ImageDisplay : public QLabel
 {
-    Q_OBJECT
+Q_OBJECT
+
 public:
-    ImageDisplay(QWidget* parent);
+	ImageDisplay(QWidget* parent);
 
-    void SetImage(const QString& imgPath);
+	void SetImage(const QString& imgPath);
 
-    void resizeEvent(QResizeEvent* event);
+	void resizeEvent(QResizeEvent* event);
 
 private:
-    void UpdateImage();
+	void UpdateImage();
 
-    QPixmap originalPixmap;
+	QPixmap originalPixmap;
 };
 
 #endif // IMAGEDISPLAY_H

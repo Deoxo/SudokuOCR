@@ -15,74 +15,74 @@ struct BackpropagationThreadsArgs;
 class NeuralNetwork
 {
 public:
-    NeuralNetwork(Optimizers optimizer, CostFunctions costFunction, float learningRate);
+	NeuralNetwork(Optimizers optimizer, CostFunctions costFunction, float learningRate);
 
-    ~NeuralNetwork();
+	~NeuralNetwork();
 
-    void Compile();
+	void Compile();
 
-    void AddLayer(Layer* layer);
+	void AddLayer(Layer* layer);
 
-    static NeuralNetwork* LoadFromFile(const QString& path);
+	static NeuralNetwork* LoadFromFile(const QString& path);
 
-    void SaveToFile(const QString& path) const;
+	void SaveToFile(const QString& path) const;
 
-    CostFunction* costFunction;
+	CostFunction* costFunction;
 
-    [[nodiscard]] int Predict(const Matrix& input);
+	[[nodiscard]] int Predict(const Matrix& input);
 
-    [[nodiscard]] float
-    ComputeAccuracy(const Matrix** inputs, const Matrix** outputs, int numSets, bool training);
+	[[nodiscard]] float
+	ComputeAccuracy(const Matrix** inputs, const Matrix** outputs, int numSets, bool training);
 
-    void Train(const Matrix** trainingInputs, const Matrix** trainingOutputs, int numInputs, int numberOfEpochs,
-               int batchSize, int numThreads);
+	void Train(const Matrix** trainingInputs, const Matrix** trainingOutputs, int numInputs, int numberOfEpochs,
+			   int batchSize, int numThreads);
 
 private:
-    [[nodiscard]] NeuralNetwork* Copy() const;
+	[[nodiscard]] NeuralNetwork* Copy() const;
 
-    void CopyValuesTo(NeuralNetwork& destination) const;
+	void CopyValuesTo(NeuralNetwork& destination) const;
 
-    void Backpropagate(const Matrix& input, const Matrix& target);
+	void Backpropagate(const Matrix& input, const Matrix& target);
 
-    void FeedForward(const Matrix& input, bool training);
+	void FeedForward(const Matrix& input, bool training);
 
-    static void* BackpropagationThread(void* arg);
+	static void* BackpropagationThread(void* arg);
 
-    [[nodiscard]] static CostFunction* CreateCostFunction(CostFunctions type);
+	[[nodiscard]] static CostFunction* CreateCostFunction(CostFunctions type);
 
-    void PrintProgress(const Matrix** trainingInputs, const Matrix** trainingOutputs, int numInputs, int epoch,
-                       int numberOfEpochs);
+	void PrintProgress(const Matrix** trainingInputs, const Matrix** trainingOutputs, int numInputs, int epoch,
+					   int numberOfEpochs);
 
-    BackpropagationThreadsArgs*
-    CreateBackpropagationThreadsArgs(int numAuxThreads, int numInputsPerThread,
-                                     const Matrix** trainingOutputs, const Matrix** trainingInputs) const;
+	BackpropagationThreadsArgs*
+	CreateBackpropagationThreadsArgs(int numAuxThreads, int numInputsPerThread,
+									 const Matrix** trainingOutputs, const Matrix** trainingInputs) const;
 
-    void UpdateAuxNetworks(BackpropagationThreadsArgs* args, int numAuxThreads, int batchOffset,
-                           int numInputsPerThread) const;
+	void UpdateAuxNetworks(BackpropagationThreadsArgs* args, int numAuxThreads, int batchOffset,
+						   int numInputsPerThread) const;
 
-    static void BackPropagateInAuxThreads(pthread_t* threads, BackpropagationThreadsArgs* args, int numAuxThreads);
+	static void BackPropagateInAuxThreads(pthread_t* threads, BackpropagationThreadsArgs* args, int numAuxThreads);
 
-    void BackPropagateInMainThread(const Matrix** trainingInputs, const Matrix** trainingOutputs, int offset,
-                                   int numInputsInMainThread);
+	void BackPropagateInMainThread(const Matrix** trainingInputs, const Matrix** trainingOutputs, int offset,
+								   int numInputsInMainThread);
 
-    static void WaitAuxThreads(pthread_t* threads, int numAuxThreads);
+	static void WaitAuxThreads(pthread_t* threads, int numAuxThreads);
 
-    void UpdateParameters(int numAuxThreads, BackpropagationThreadsArgs* threadsArgs, float batchScaleFactor);
+	void UpdateParameters(int numAuxThreads, BackpropagationThreadsArgs* threadsArgs, float batchScaleFactor);
 
-    Optimizers optimizer;
-    float learningRate;
-    bool compiled = false;
-    Matrix* costDerivative;
+	Optimizers optimizer;
+	float learningRate;
+	bool compiled = false;
+	Matrix* costDerivative;
 
-    std::vector<Layer*> layers;
-    int numLayers;
+	std::vector<Layer*> layers;
+	int numLayers;
 };
 
 typedef struct BackpropagationThreadsArgs
 {
-    NeuralNetwork* network;
-    int numInputs, offset;
-    const Matrix** trainingInputs, ** trainingOutputs;
+	NeuralNetwork* network;
+	int numInputs, offset;
+	const Matrix** trainingInputs, ** trainingOutputs;
 } BackpropagationThreadsArgs;
 
 #endif //S3PROJECT_NETWORK_H

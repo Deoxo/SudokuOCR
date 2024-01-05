@@ -11,159 +11,159 @@
 
 typedef struct HoughLine
 {
-    float theta;
-    float rho;
+	float theta;
+	float rho;
 } HoughLine;
 
 typedef struct Line
 {
-    int x1;
-    int y1;
-    int x2;
-    int y2;
+	int x1;
+	int y1;
+	int x2;
+	int y2;
 } Line;
 
 typedef struct Point
 {
-    int x;
-    int y;
+	int x;
+	int y;
 } Point;
 
 typedef struct Contour
 {
-    Point* points;
-    int size;
+	Point* points;
+	int size;
 } Contour;
 
 typedef struct Square
 {
-    Point topLeft;
-    Point topRight;
-    Point bottomLeft;
-    Point bottomRight;
+	Point topLeft;
+	Point topRight;
+	Point bottomLeft;
+	Point bottomRight;
 } Square;
 
 typedef struct Intersection
 {
-    int line2Id;
-    Point* point;
+	int line2Id;
+	Point* point;
 } Intersection;
 
 typedef struct PreprocessInfo
 {
-    Matrix* dilated;
-    Matrix* e;
+	Matrix* dilated;
+	Matrix* e;
 } PreprocessInfo;
 
 typedef struct DetectionInfo
 {
-    Square* bestSquare;
-    List* squares;
-    int numSquares;
-    List* intersections;
-    int numIntersections;
-    Line* cartesianLines;
-    int numLines;
+	Square* bestSquare;
+	List* squares;
+	int numSquares;
+	List* intersections;
+	int numIntersections;
+	Line* cartesianLines;
+	int numLines;
 } DetectionInfo;
 
 namespace Imagery
 {
-    Matrix* LoadImageAsMatrix(const QString& imagePath);
+	Matrix* LoadImageAsMatrix(const QString& imagePath);
 
-    Matrix* ConvertToGrayscale(const Matrix& m);
+	Matrix* ConvertToGrayscale(const Matrix& m);
 
-    Matrix* GetGaussianKernel(int size);
+	Matrix* GetGaussianKernel(int size);
 
-    void Blur(const Matrix& m, Matrix& output, int strength);
+	void Blur(const Matrix& m, Matrix& output, int strength);
 
-    void
-    AdaptiveThreshold(const Matrix& m, Matrix& output, int neighborhoodSize, float offset, float highValue,
-                      float lowValue);
+	void
+	AdaptiveThreshold(const Matrix& m, Matrix& output, int neighborhoodSize, float offset, float highValue,
+					  float lowValue);
 
-    void Dilate(const Matrix& m, Matrix& output, int neighborhoodSize);
+	void Dilate(const Matrix& m, Matrix& output, int neighborhoodSize);
 
-    void Erode(const Matrix& m, Matrix& output, int neighborhoodSize);
+	void Erode(const Matrix& m, Matrix& output, int neighborhoodSize);
 
-    void BitwiseNot(const Matrix& m, Matrix& output);
+	void BitwiseNot(const Matrix& m, Matrix& output);
 
-    void Canny(const Matrix& m, Matrix& output, float lowThreshold, float highThreshold);
+	void Canny(const Matrix& m, Matrix& output, float lowThreshold, float highThreshold);
 
-    Matrix** GetGradients(const Matrix& m);
+	Matrix** GetGradients(const Matrix& m);
 
-    void NonMaximumSuppression(const Matrix& m, const Matrix& angles, Matrix& output);
+	void NonMaximumSuppression(const Matrix& m, const Matrix& angles, Matrix& output);
 
-    void DoubleThreshold(const Matrix& m, Matrix& output, float lowThreshold, float highThreshold);
+	void DoubleThreshold(const Matrix& m, Matrix& output, float lowThreshold, float highThreshold);
 
-    void Hysteresis(const Matrix& m, Matrix& output, float highThreshold);
+	void Hysteresis(const Matrix& m, Matrix& output, float highThreshold);
 
-    Matrix* HoughTransform(const Matrix& m);
+	Matrix* HoughTransform(const Matrix& m);
 
-    float* kMeansClustersCenter(const int* data, int dataLength);
+	float* kMeansClustersCenter(const int* data, int dataLength);
 
-    float ComputeImageAngle(const HoughLine* lines, int numLines);
+	float ComputeImageAngle(const HoughLine* lines, int numLines);
 
-    void BilateralFilter(const Matrix& input, Matrix& output, int diameter, float sigma_color, float sigma_space);
+	void BilateralFilter(const Matrix& input, Matrix& output, int diameter, float sigma_color, float sigma_space);
 
-    void SobelEdgeDetector(const Matrix& m, Matrix& output);
+	void SobelEdgeDetector(const Matrix& m, Matrix& output);
 
-    void AdaptiveThreshold2(const Matrix& m, Matrix& output, float threshold, float highValue, float lowValue);
+	void AdaptiveThreshold2(const Matrix& m, Matrix& output, float threshold, float highValue, float lowValue);
 
-    float ComputeEntropy(const Matrix& m);
+	float ComputeEntropy(const Matrix& m);
 
-    float SegmentBlackPercentage(const Matrix& img, const Point* p1, const Point* p2);
+	float SegmentBlackPercentage(const Matrix& img, const Point* p1, const Point* p2);
 
-    void
-    PrintPointScreenCoordinates(const Point* point, int screenWidth, int screenHeight, int imgWidth, int imgHeight);
+	void
+	PrintPointScreenCoordinates(const Point* point, int screenWidth, int screenHeight, int imgWidth, int imgHeight);
 
-    float StandardDeviation(const Matrix& m, int blockSize);
+	float StandardDeviation(const Matrix& m, int blockSize);
 
-    float Brightness(const Matrix& img);
+	float Brightness(const Matrix& img);
 
-    float Dispersion(const Matrix& in);
+	float Dispersion(const Matrix& in);
 
-    Matrix** CropBorders(const Matrix** cells, int cropPercentage);
+	Matrix** CropBorders(const Matrix** cells, int cropPercentage);
 
-    void RemoveBorderArtifacts(Matrix** cells);
+	void RemoveBorderArtifacts(Matrix** cells);
 
-    int* GetEmptyCells(const Matrix** cells, float emptinessThreshold);
+	int* GetEmptyCells(const Matrix** cells, float emptinessThreshold);
 
-    Matrix** ResizeCellsTo28x28(const Matrix** cells);
+	Matrix** ResizeCellsTo28x28(const Matrix** cells);
 
-    // Offset pixels horizontally to center the digit. Discards pixels that go out of bounds. Offset can be negative.
-    void HorizontalOffset(Matrix& m, int offset);
+	// Offset pixels horizontally to center the digit. Discards pixels that go out of bounds. Offset can be negative.
+	void HorizontalOffset(Matrix& m, int offset);
 
-    void VerticalOffset(Matrix& m, int offset);
+	void VerticalOffset(Matrix& m, int offset);
 
-    Matrix** CenterCells(const Matrix** cells, const int* emptyCells);
+	Matrix** CenterCells(const Matrix** cells, const int* emptyCells);
 
-    // Delete a pixel and recursively delete its neighbors if they are white.
-    void RemoveContinuousPixels(Matrix& img, int y, int x);
+	// Delete a pixel and recursively delete its neighbors if they are white.
+	void RemoveContinuousPixels(Matrix& img, int y, int x);
 
-    void RemoveLines(Matrix& img);
+	void RemoveLines(Matrix& img);
 
-    Matrix* Rotation(const Matrix& matrix, const Square& s, double degree);
+	Matrix* Rotation(const Matrix& matrix, const Square& s, double degree);
 
-    void RotatePoint(const Point* pt, const Point* center, float angle, Point* res);
+	void RotatePoint(const Point* pt, const Point* center, float angle, Point* res);
 
-    Square* RotateSquare(const Square* s, const Point* center, float angle);
+	Square* RotateSquare(const Square* s, const Point* center, float angle);
 
-    float Dist(const Point* pt1, const Point* pt2);
+	float Dist(const Point* pt1, const Point* pt2);
 
-    Point* ClosestEdgeFrom(const Square* s, const Point* pt);
+	Point* ClosestEdgeFrom(const Square* s, const Point* pt);
 
-    Square* Order(const Square* s, int w, int h);
+	Square* Order(const Square* s, int w, int h);
 
-    // Function to extract the Sudoku region from the straightened image
-    Matrix*
-    ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, float rotationAngle);
+	// Function to extract the Sudoku region from the straightened image
+	Matrix*
+	ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, float rotationAngle);
 
-    Matrix** Split(const Matrix& matrix);
+	Matrix** Split(const Matrix& matrix);
 
-    PreprocessInfo* Preprocess(const QString& imgPath, const QString& savePath);
+	PreprocessInfo* Preprocess(const QString& imgPath, const QString& savePath);
 
-    DetectionInfo* Detection(const PreprocessInfo* PreprocessInfo, const QString& savePath);
+	DetectionInfo* Detection(const PreprocessInfo* PreprocessInfo, const QString& savePath);
 
-    void ProcessImage(const QString& imagePath);
+	void ProcessImage(const QString& imagePath);
 };
 
 #endif //SUDOKUOCR_IMAGERY_H

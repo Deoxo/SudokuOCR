@@ -7,7 +7,7 @@
 QT_BEGIN_NAMESPACE
 namespace Ui
 {
-    class MainWindow;
+	class MainWindow;
 }
 QT_END_NAMESPACE
 
@@ -16,25 +16,25 @@ class MainWindow : public QMainWindow
 Q_OBJECT
 
 public:
-    MainWindow(QWidget* parent = nullptr);
+	MainWindow(QWidget* parent = nullptr);
 
-    ~MainWindow();
+	~MainWindow();
 
 signals:
 
-    void Quit();
+	void Quit();
 
 public slots:
-    
-    void OnImageSelected(const QString& filePath);
 
-    void GoToPage0();
+	void OnImageSelected(const QString& filePath);
 
-    void OnImageValidated();
+	void GoToPage0();
+
+	void OnImageValidated();
 
 private:
-    Ui::MainWindow* ui;
-    QString imgPath;
+	Ui::MainWindow* ui;
+	QString imgPath;
 };
 
 #endif // MAINWINDOW_H

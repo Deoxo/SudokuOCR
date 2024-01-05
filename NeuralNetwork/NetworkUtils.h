@@ -9,67 +9,67 @@
 
 typedef struct LayerShape
 {
-    int* dimensions;
+	int* dimensions;
 
-    LayerShape(int d1, int d2, int d3)
-    {
-        dimensions = new int[3];
-        dimensions[0] = d1;
-        dimensions[1] = d2;
-        dimensions[2] = d3;
-    }
+	LayerShape(int d1, int d2, int d3)
+	{
+		dimensions = new int[3];
+		dimensions[0] = d1;
+		dimensions[1] = d2;
+		dimensions[2] = d3;
+	}
 
-    LayerShape(const LayerShape& other)
-    {
-        dimensions = new int[3];
-        std::copy(other.dimensions, other.dimensions + 3, dimensions);
-    }
+	LayerShape(const LayerShape& other)
+	{
+		dimensions = new int[3];
+		std::copy(other.dimensions, other.dimensions + 3, dimensions);
+	}
 
-    LayerShape& operator=(const LayerShape& other)
-    {
-        if (this == &other)
-            return *this;
-        std::copy(other.dimensions, other.dimensions + 3, dimensions);
-        return *this;
-    }
+	LayerShape& operator=(const LayerShape& other)
+	{
+		if (this == &other)
+			return *this;
+		std::copy(other.dimensions, other.dimensions + 3, dimensions);
+		return *this;
+	}
 
-    ~LayerShape()
-    {
-        delete[] dimensions;
-    }
+	~LayerShape()
+	{
+		delete[] dimensions;
+	}
 } LayerShape;
 
 enum Optimizers
 {
-    NoOptimizer,
-    SGD,
-    Adam
+	NoOptimizer,
+	SGD,
+	Adam
 };
 
 enum CostFunctions
 {
-    MSE,
-    CrossEntropy
+	MSE,
+	CrossEntropy
 };
 
 enum ActivationFunctions
 {
-    Sigmoid,
-    ReLU,
-    Softmax,
-    Tanh,
-    LeakyReLU,
-    None
+	Sigmoid,
+	ReLU,
+	Softmax,
+	Tanh,
+	LeakyReLU,
+	None
 };
 
 enum LayerTypes
 {
-    Input = 0x0,
-    FC = 0x1,
-    Dropout = 0x2,
-    Conv = 0x4,
-    MaxPool = 0x8,
-    Flatten = 0x16
+	Input = 0x0,
+	FC = 0x1,
+	Dropout = 0x2,
+	Conv = 0x4,
+	MaxPool = 0x8,
+	Flatten = 0x16
 };
 
 const int layers2DMask = LayerTypes::Conv | LayerTypes::MaxPool;

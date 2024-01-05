@@ -11,41 +11,41 @@
 class CostFunction
 {
 public:
-    CostFunctions type;
+	CostFunctions type;
 
-    explicit CostFunction(const CostFunctions& type);
+	explicit CostFunction(const CostFunctions& type);
 
-    virtual ~CostFunction() = default;
+	virtual ~CostFunction() = default;
 
-    virtual float Function(const Matrix& m, const Matrix& target) = 0;
+	virtual float Function(const Matrix& m, const Matrix& target) = 0;
 
-    virtual void Prime(const Matrix& m, const Matrix& target, Matrix& output) = 0;
+	virtual void Prime(const Matrix& m, const Matrix& target, Matrix& output) = 0;
 
-    [[nodiscard]] virtual CostFunction* Copy() const = 0;
+	[[nodiscard]] virtual CostFunction* Copy() const = 0;
 };
 
 class MSE_Cost : public CostFunction
 {
 public:
-    MSE_Cost();
+	MSE_Cost();
 
-    float Function(const Matrix& m, const Matrix& target) override;
+	float Function(const Matrix& m, const Matrix& target) override;
 
-    void Prime(const Matrix& m, const Matrix& target, Matrix& output) override;
+	void Prime(const Matrix& m, const Matrix& target, Matrix& output) override;
 
-    [[nodiscard]] CostFunction* Copy() const override;
+	[[nodiscard]] CostFunction* Copy() const override;
 };
 
 class CrossEntropyCost : public CostFunction
 {
 public:
-    CrossEntropyCost();
+	CrossEntropyCost();
 
-    float Function(const Matrix& m, const Matrix& target) override;
+	float Function(const Matrix& m, const Matrix& target) override;
 
-    void Prime(const Matrix& m, const Matrix& target, Matrix& output) override;
+	void Prime(const Matrix& m, const Matrix& target, Matrix& output) override;
 
-    [[nodiscard]] CostFunction* Copy() const override;
+	[[nodiscard]] CostFunction* Copy() const override;
 };
 
 

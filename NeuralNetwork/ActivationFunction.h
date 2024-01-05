@@ -11,94 +11,94 @@
 class ActivationFunction
 {
 public:
-    ActivationFunctions type;
+	ActivationFunctions type;
 
-    explicit ActivationFunction(const ActivationFunctions& type);
+	explicit ActivationFunction(const ActivationFunctions& type);
 
-    virtual ~ActivationFunction() = default;
+	virtual ~ActivationFunction() = default;
 
-    [[nodiscard]] virtual ActivationFunction* Copy() const = 0;
+	[[nodiscard]] virtual ActivationFunction* Copy() const = 0;
 
-    virtual void Prime(const Matrix& input, Matrix& output) = 0;
+	virtual void Prime(const Matrix& input, Matrix& output) = 0;
 
-    virtual void Function(const Matrix& input, Matrix& output) = 0;
+	virtual void Function(const Matrix& input, Matrix& output) = 0;
 };
 
 class NoActivation : public ActivationFunction
 {
 public:
-    NoActivation();
+	NoActivation();
 
-    [[nodiscard]] ActivationFunction* Copy() const override;
+	[[nodiscard]] ActivationFunction* Copy() const override;
 
-    void Function(const Matrix& input, Matrix& output) override;
+	void Function(const Matrix& input, Matrix& output) override;
 
-    void Prime(const Matrix& input, Matrix& output) override;
+	void Prime(const Matrix& input, Matrix& output) override;
 };
 
 class SigmoidActivation : public ActivationFunction
 {
 public:
-    explicit SigmoidActivation() : ActivationFunction(Sigmoid)
-    {}
+	explicit SigmoidActivation() : ActivationFunction(Sigmoid)
+	{}
 
-    void Function(const Matrix& input, Matrix& output) override;
+	void Function(const Matrix& input, Matrix& output) override;
 
-    void Prime(const Matrix& input, Matrix& output) override;
+	void Prime(const Matrix& input, Matrix& output) override;
 
-    [[nodiscard]] ActivationFunction* Copy() const override;
+	[[nodiscard]] ActivationFunction* Copy() const override;
 };
 
 class ReLUActivation : public ActivationFunction
 {
 public:
-    explicit ReLUActivation() : ActivationFunction(ReLU)
-    {}
+	explicit ReLUActivation() : ActivationFunction(ReLU)
+	{}
 
-    void Function(const Matrix& input, Matrix& output) override;
+	void Function(const Matrix& input, Matrix& output) override;
 
-    void Prime(const Matrix& input, Matrix& output) override;
+	void Prime(const Matrix& input, Matrix& output) override;
 
-    [[nodiscard]] ActivationFunction* Copy() const override;
+	[[nodiscard]] ActivationFunction* Copy() const override;
 };
 
 class SoftmaxActivation : public ActivationFunction
 {
 public:
-    explicit SoftmaxActivation() : ActivationFunction(Softmax)
-    {}
+	explicit SoftmaxActivation() : ActivationFunction(Softmax)
+	{}
 
-    void Function(const Matrix& input, Matrix& output) override;
+	void Function(const Matrix& input, Matrix& output) override;
 
-    void Prime(const Matrix& input, Matrix& output) override;
+	void Prime(const Matrix& input, Matrix& output) override;
 
-    [[nodiscard]] ActivationFunction* Copy() const override;
+	[[nodiscard]] ActivationFunction* Copy() const override;
 };
 
 class TanhActivation : public ActivationFunction
 {
 public:
-    explicit TanhActivation() : ActivationFunction(Tanh)
-    {}
+	explicit TanhActivation() : ActivationFunction(Tanh)
+	{}
 
-    void Function(const Matrix& input, Matrix& output) override;
+	void Function(const Matrix& input, Matrix& output) override;
 
-    void Prime(const Matrix& input, Matrix& output) override;
+	void Prime(const Matrix& input, Matrix& output) override;
 
-    [[nodiscard]] ActivationFunction* Copy() const override;
+	[[nodiscard]] ActivationFunction* Copy() const override;
 };
 
 class LeakyReLUActivation : public ActivationFunction
 {
 public:
-    explicit LeakyReLUActivation() : ActivationFunction(LeakyReLU)
-    {}
+	explicit LeakyReLUActivation() : ActivationFunction(LeakyReLU)
+	{}
 
-    void Function(const Matrix& input, Matrix& output) override;
+	void Function(const Matrix& input, Matrix& output) override;
 
-    void Prime(const Matrix& input, Matrix& output) override;
+	void Prime(const Matrix& input, Matrix& output) override;
 
-    [[nodiscard]] ActivationFunction* Copy() const override;
+	[[nodiscard]] ActivationFunction* Copy() const override;
 };
 
 

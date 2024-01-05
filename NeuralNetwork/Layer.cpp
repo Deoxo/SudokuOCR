@@ -331,127 +331,127 @@ void FlattenBackPropagate(Layer* layer, const Matrix* pastOutput, Matrix* nextDe
 }*/
 
 Layer::Layer(LayerTypes type) :
-        type(type),
-        optimizer(nullptr),
-        shape(new LayerShape(0, 0, 0))
+		type(type),
+		optimizer(nullptr),
+		shape(new LayerShape(0, 0, 0))
 {}
 
 Layer::~Layer()
 {
-    delete output;
-    delete z;
-    delete delta;
-    delete deltaBiases;
-    delete deltaWeights;
-    delete activationPrime;
-    delete deltaWeightsSum;
-    delete deltaBiasesSum;
-    delete weights;
-    delete biases;
+	delete output;
+	delete z;
+	delete delta;
+	delete deltaBiases;
+	delete deltaWeights;
+	delete activationPrime;
+	delete deltaWeightsSum;
+	delete deltaBiasesSum;
+	delete weights;
+	delete biases;
 
-    delete optimizer;
-    delete shape;
+	delete optimizer;
+	delete shape;
 }
 
 ActivationFunction* Layer::CreateActivationFunction(const ActivationFunctions type)
 {
-    switch (type)
-    {
-        case None:
-            return new NoActivation();
-        case Sigmoid:
-            return new SigmoidActivation();
-        case ReLU:
-            return new ReLUActivation();
-        case Softmax:
-            return new SoftmaxActivation();
-        case Tanh:
-            return new TanhActivation();
-        case LeakyReLU:
-            return new LeakyReLUActivation();
+	switch (type)
+	{
+		case None:
+			return new NoActivation();
+		case Sigmoid:
+			return new SigmoidActivation();
+		case ReLU:
+			return new ReLUActivation();
+		case Softmax:
+			return new SoftmaxActivation();
+		case Tanh:
+			return new TanhActivation();
+		case LeakyReLU:
+			return new LeakyReLUActivation();
 
-        default:
-            throw std::runtime_error("Invalid activation function type");
-    }
+		default:
+			throw std::runtime_error("Invalid activation function type");
+	}
 }
 
 void Layer::Compile(const LayerShape& shape_, const LayerShape& previousLayerShape [[maybe_unused]],
-                    Optimizer* optimizer_)
+					Optimizer* optimizer_)
 {
-    *this->shape = shape_;
-    optimizer = optimizer_;
+	*this->shape = shape_;
+	optimizer = optimizer_;
 }
 
 Layer* Layer::LoadStructureFromFile(FILE* file)
 {
-    // Layer type
-    LayerTypes layerType;
-    if (fread(&layerType, sizeof(int), 1, file) != 1)
-        throw std::runtime_error("Could not read layer type\n");
+	// Layer type
+	LayerTypes layerType;
+	if (fread(&layerType, sizeof(int), 1, file) != 1)
+		throw std::runtime_error("Could not read layer type\n");
 
-    // Create layer
-    Layer* l;
-    switch (layerType)
-    {
-        case Input:
-            l = new InputLayer(file);
-            break;
-        case FC:
-            l = new FCL(file);
-            break;
-        case Dropout:
-            l = new DropoutLayer(file);
-            break;
-        case Conv:
-        case MaxPool:
-        case Flatten:
-            throw std::runtime_error("Not implemented");
-        default:
-            throw std::runtime_error("Unknown layer type");
-    }
+	// Create layer
+	Layer* l;
+	switch (layerType)
+	{
+		case Input:
+			l = new InputLayer(file);
+			break;
+		case FC:
+			l = new FCL(file);
+			break;
+		case Dropout:
+			l = new DropoutLayer(file);
+			break;
+		case Conv:
+		case MaxPool:
+		case Flatten:
+			throw std::runtime_error("Not implemented");
+		default:
+			throw std::runtime_error("Unknown layer type");
+	}
 
-    return l;
+	return l;
 }
 
 void Layer::SaveStructureToFile(FILE* file)
 {
-    fwrite(&type, sizeof(int), 1, file);
+	fwrite(&type, sizeof(int), 1, file);
 }
 
 void Layer::SaveParametersToFile(FILE* file)
 {
-    if (optimizer != nullptr)
-        optimizer->SaveParametersToFile(file);
+	if (optimizer != nullptr)
+		optimizer->SaveParametersToFile(file);
 }
 
 void Layer::LoadParametersFromFile(FILE* file)
 {
-    if (optimizer != nullptr)
-        optimizer->LoadParametersFromFile(file);
+	if (optimizer != nullptr)
+		optimizer->LoadParametersFromFile(file);
 }
 
 void InputLayer::FeedForward(const Matrix& input, const bool train [[maybe_unused]])
 {
-    input.CopyValuesTo(*output);
+	input.CopyValuesTo(*output);
 }
 
 
 InputLayer::InputLayer(int numNeurons) : Layer(Input)
 {
-    shape->dimensions[0] = numNeurons;
+	shape->dimensions[0] = numNeurons;
 }
 
 InputLayer::InputLayer(FILE* file) : Layer(Input)
 {
-    if (fread(&shape->dimensions[0], sizeof(int), 1, file) != 1) // Load number of neurons
-        throw std::runtime_error("Could not read number of neurons\n");
+	if (fread(&shape->dimensions[0], sizeof(int), 1, file) != 1) // Load number of neurons
+		throw std::runtime_error("Could not read number of neurons\n");
 }
 
 void
 InputLayer::Compile(const LayerShape& shape, const LayerShape& previousLayerShape, Optimizer* optimizer)
 {
-    Layer::Compile(shape, previousLayerShape, optimizer);
-    output = new Matrix(shape.dimensions[0], shape.dimensions[1], shape.dimensions[2]);
+	Layer::Compile(shape, previousLayerShape, optimizer);
+	output = new Matrix(shape.dimensions[0], shape.dimensions[1], shape.dimensions[2]);
 }
 
 void
@@ -462,7 +462,7 @@ InputLayer::BackPropagate(const Matrix& pastOutput [[maybe_unused]], Matrix* nex
 
 Layer* InputLayer::Copy() const
 {
-    return new InputLayer(shape->dimensions[0]);
+	return new InputLayer(shape->dimensions[0]);
 }
 
 void InputLayer::CopyValuesTo(const Layer& other [[maybe_unused]])
@@ -472,153 +472,153 @@ void InputLayer::CopyValuesTo(const Layer& other [[maybe_unused]])
 
 void InputLayer::SaveStructureToFile(FILE* file)
 {
-    Layer::SaveStructureToFile(file);
-    fwrite(&shape->dimensions[0], sizeof(int), 1, file); // Save number of neurons
+	Layer::SaveStructureToFile(file);
+	fwrite(&shape->dimensions[0], sizeof(int), 1, file); // Save number of neurons
 }
 
 FCL::FCL(ActivationFunctions activationFunction, const int numNeurons) : Layer(FC),
-                                                                         activationFunction(CreateActivationFunction(
-                                                                                 activationFunction))
+																		 activationFunction(CreateActivationFunction(
+																				 activationFunction))
 {
-    shape->dimensions[0] = numNeurons;
+	shape->dimensions[0] = numNeurons;
 }
 
 FCL::FCL(FILE* file) : Layer(FC)
 {
-    ActivationFunctions activationFunctionType;
-    if (fread(&activationFunctionType, sizeof(int), 1, file) != 1)
-        throw std::runtime_error("Could not read activation function type\n");
-    if (fread(&shape->dimensions[0], sizeof(int), 1, file) != 1) // Load number of neurons
-        throw std::runtime_error("Could not read number of neurons\n");
-    activationFunction = CreateActivationFunction(activationFunctionType);
+	ActivationFunctions activationFunctionType;
+	if (fread(&activationFunctionType, sizeof(int), 1, file) != 1)
+		throw std::runtime_error("Could not read activation function type\n");
+	if (fread(&shape->dimensions[0], sizeof(int), 1, file) != 1) // Load number of neurons
+		throw std::runtime_error("Could not read number of neurons\n");
+	activationFunction = CreateActivationFunction(activationFunctionType);
 }
 
 void
 FCL::Compile(const LayerShape& shape, const LayerShape& previousLayerShape, Optimizer* optimizer)
 {
-    Layer::Compile(shape, previousLayerShape, optimizer);
-    const int prevLayerNumNeurons = previousLayerShape.dimensions[0] * previousLayerShape.dimensions[1] *
-                                    previousLayerShape.dimensions[2];
+	Layer::Compile(shape, previousLayerShape, optimizer);
+	const int prevLayerNumNeurons = previousLayerShape.dimensions[0] * previousLayerShape.dimensions[1] *
+									previousLayerShape.dimensions[2];
 
 
-    // Allocate the matrices
-    weights = new Matrix(shape.dimensions[0], prevLayerNumNeurons, 1);
-    biases = new Matrix(shape.dimensions[0], 1, 1);
-    output = new Matrix(shape.dimensions[0], 1, 1);
-    z = new Matrix(shape.dimensions[0], 1, 1);
-    delta = new Matrix(shape.dimensions[0], 1, 1);
-    deltaBiases = new Matrix(shape.dimensions[0], 1, 1);
-    deltaWeights = new Matrix(shape.dimensions[0], prevLayerNumNeurons, 1);
-    activationPrime = new Matrix(shape.dimensions[0], 1, 1);
-    deltaWeightsSum = new Matrix(shape.dimensions[0], prevLayerNumNeurons, 1);
-    deltaBiasesSum = new Matrix(shape.dimensions[0], 1, 1);
+	// Allocate the matrices
+	weights = new Matrix(shape.dimensions[0], prevLayerNumNeurons, 1);
+	biases = new Matrix(shape.dimensions[0], 1, 1);
+	output = new Matrix(shape.dimensions[0], 1, 1);
+	z = new Matrix(shape.dimensions[0], 1, 1);
+	delta = new Matrix(shape.dimensions[0], 1, 1);
+	deltaBiases = new Matrix(shape.dimensions[0], 1, 1);
+	deltaWeights = new Matrix(shape.dimensions[0], prevLayerNumNeurons, 1);
+	activationPrime = new Matrix(shape.dimensions[0], 1, 1);
+	deltaWeightsSum = new Matrix(shape.dimensions[0], prevLayerNumNeurons, 1);
+	deltaBiasesSum = new Matrix(shape.dimensions[0], 1, 1);
 
-    // Initialize weights and biases
-    for (int j = 0; j < weights->matrixSize; ++j)
-        weights->data[j] = (j % 10) / 5.f - 1;//((double) rand()) / ((double) RAND_MAX) * 2 - 1;
-    for (int j = 0; j < biases->matrixSize; ++j)
-        biases->data[j] = (j % 10) / 5.f - 1;//((double) rand()) / ((double) RAND_MAX) * 2 - 1;
+	// Initialize weights and biases
+	for (int j = 0; j < weights->matrixSize; ++j)
+		weights->data[j] = (j % 10) / 5.f - 1;//((double) rand()) / ((double) RAND_MAX) * 2 - 1;
+	for (int j = 0; j < biases->matrixSize; ++j)
+		biases->data[j] = (j % 10) / 5.f - 1;//((double) rand()) / ((double) RAND_MAX) * 2 - 1;
 
-    // Make sure the deltaSums are initialized to 0
-    deltaWeightsSum->Reset();
-    deltaBiasesSum->Reset();
+	// Make sure the deltaSums are initialized to 0
+	deltaWeightsSum->Reset();
+	deltaBiasesSum->Reset();
 
-    const int optNumsParams = weights->size + biases->size;
-    optimizer->Compile(optNumsParams);
+	const int optNumsParams = weights->size + biases->size;
+	optimizer->Compile(optNumsParams);
 }
 
 void FCL::FeedForward(const Matrix& input, const bool train [[maybe_unused]])
 {
-    Matrix::Multiply(*weights, input, *z);
-    *z += *biases;
-    activationFunction->Function(*z, *output);
+	Matrix::Multiply(*weights, input, *z);
+	*z += *biases;
+	activationFunction->Function(*z, *output);
 }
 
 void FCL::BackPropagate(const Matrix& pastOutput, Matrix* nextDelta)
 {
-    activationFunction->Prime(*z, *activationPrime); // Compute delta
-    Matrix::LinearMultiply(*activationPrime, *delta, *delta); // Uses previously stored values
-    delta->CopyValuesTo(*deltaBiases);
-    *deltaBiasesSum += *deltaBiases; // Sum delta biases
-    Matrix::MultiplyByTranspose(*delta, pastOutput, *deltaWeights); // Compute delta weights
-    *deltaWeightsSum += *deltaWeights; // Sum delta weights
+	activationFunction->Prime(*z, *activationPrime); // Compute delta
+	Matrix::LinearMultiply(*activationPrime, *delta, *delta); // Uses previously stored values
+	delta->CopyValuesTo(*deltaBiases);
+	*deltaBiasesSum += *deltaBiases; // Sum delta biases
+	Matrix::MultiplyByTranspose(*delta, pastOutput, *deltaWeights); // Compute delta weights
+	*deltaWeightsSum += *deltaWeights; // Sum delta weights
 
-    // Compute partial delta of next layer
-    if (nextDelta != nullptr) // If next layer is the input layer, nextDelta is nullptr
-        Matrix::TransposeMultiply(*weights, *delta, *nextDelta);
+	// Compute partial delta of next layer
+	if (nextDelta != nullptr) // If next layer is the input layer, nextDelta is nullptr
+		Matrix::TransposeMultiply(*weights, *delta, *nextDelta);
 
 }
 
 Layer* FCL::Copy() const
 {
-    return new FCL(activationFunction->type, shape->dimensions[0]);
+	return new FCL(activationFunction->type, shape->dimensions[0]);
 }
 
 void FCL::CopyValuesTo(const Layer& other)
 {
-    weights->CopyValuesTo(*other.weights);
-    biases->CopyValuesTo(*other.biases);
-    output->CopyValuesTo(*other.output);
-    z->CopyValuesTo(*other.z);
-    delta->CopyValuesTo(*other.delta);
-    deltaBiases->CopyValuesTo(*other.deltaBiases);
-    deltaWeights->CopyValuesTo(*other.deltaWeights);
-    activationPrime->CopyValuesTo(*other.activationPrime);
-    deltaWeightsSum->CopyValuesTo(*other.deltaWeightsSum);
-    deltaBiasesSum->CopyValuesTo(*other.deltaBiasesSum);
+	weights->CopyValuesTo(*other.weights);
+	biases->CopyValuesTo(*other.biases);
+	output->CopyValuesTo(*other.output);
+	z->CopyValuesTo(*other.z);
+	delta->CopyValuesTo(*other.delta);
+	deltaBiases->CopyValuesTo(*other.deltaBiases);
+	deltaWeights->CopyValuesTo(*other.deltaWeights);
+	activationPrime->CopyValuesTo(*other.activationPrime);
+	deltaWeightsSum->CopyValuesTo(*other.deltaWeightsSum);
+	deltaBiasesSum->CopyValuesTo(*other.deltaBiasesSum);
 }
 
 void FCL::SaveStructureToFile(FILE* file)
 {
-    Layer::SaveStructureToFile(file);
-    fwrite(&activationFunction->type, sizeof(int), 1, file);
-    fwrite(&shape->dimensions[0], sizeof(int), 1, file); // Save number of neurons
+	Layer::SaveStructureToFile(file);
+	fwrite(&activationFunction->type, sizeof(int), 1, file);
+	fwrite(&shape->dimensions[0], sizeof(int), 1, file); // Save number of neurons
 }
 
 void FCL::LoadParametersFromFile(FILE* file)
 {
-    Layer::LoadParametersFromFile(file);
-    weights->LoadFromFile(file);
-    biases->LoadFromFile(file);
+	Layer::LoadParametersFromFile(file);
+	weights->LoadFromFile(file);
+	biases->LoadFromFile(file);
 }
 
 void FCL::SaveParametersToFile(FILE* file)
 {
-    Layer::SaveParametersToFile(file);
-    weights->SaveToFile(file);
-    biases->SaveToFile(file);
+	Layer::SaveParametersToFile(file);
+	weights->SaveToFile(file);
+	biases->SaveToFile(file);
 }
 
 DropoutLayer::DropoutLayer(ActivationFunctions activationFunction, const int numNeurons, const float dropoutRate) :
-        FCL(activationFunction, numNeurons), dropoutRate(dropoutRate)
+		FCL(activationFunction, numNeurons), dropoutRate(dropoutRate)
 {
-    type = Dropout;
+	type = Dropout;
 }
 
 DropoutLayer::DropoutLayer(FILE* file) : FCL(file), dropoutRate(0)
 {
-    if (fread(&dropoutRate, sizeof(float), 1, file) != 1)
-        throw std::runtime_error("Could not read dropout rate\n");
+	if (fread(&dropoutRate, sizeof(float), 1, file) != 1)
+		throw std::runtime_error("Could not read dropout rate\n");
 }
 
 void DropoutLayer::FeedForward(const Matrix& input, const bool training)
 {
-    FCL::FeedForward(input, training);
-    if (training)
-    {
-        for (int i = 0; i < output->size; ++i)
-            if (((double) rand()) / ((double) RAND_MAX) < dropoutRate)
-                output->data[i] = 0;
-    }
+	FCL::FeedForward(input, training);
+	if (training)
+	{
+		for (int i = 0; i < output->size; ++i)
+			if (((double) rand()) / ((double) RAND_MAX) < dropoutRate)
+				output->data[i] = 0;
+	}
 }
 
 Layer* DropoutLayer::Copy() const
 {
-    return new DropoutLayer(activationFunction->type, shape->dimensions[0], dropoutRate);
+	return new DropoutLayer(activationFunction->type, shape->dimensions[0], dropoutRate);
 }
 
 void DropoutLayer::SaveStructureToFile(FILE* file)
 {
-    FCL::SaveStructureToFile(file);
-    fwrite(&dropoutRate, sizeof(float), 1, file);
+	FCL::SaveStructureToFile(file);
+	fwrite(&dropoutRate, sizeof(float), 1, file);
 }
