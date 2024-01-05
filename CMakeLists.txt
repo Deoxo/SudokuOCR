@@ -66,11 +66,15 @@ set(PROJECT_SOURCES
         NeuralNetwork/Optimizer.cpp
         NeuralNetwork/Optimizer.h
 )
-
+include_directories (${PROJECT_SOURCE_DIR})
 if (${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(SudokuOCR
             MANUAL_FINALIZATION
             ${PROJECT_SOURCES}
+            ImgSelectorButton.h ImgSelectorButton.cpp
+            ImageDisplay.h ImageDisplay.cpp
+
+
     )
     # Define target properties for Android with Qt 6 as:
     #    set_property(TARGET SudokuOCR APPEND PROPERTY QT_ANDROID_PACKAGE_SOURCE_DIR

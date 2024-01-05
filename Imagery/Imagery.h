@@ -7,6 +7,7 @@
 
 #include <QString>
 #include "../Matrix.h"
+#include "../Tools/List.h"
 
 typedef struct HoughLine
 {
@@ -47,6 +48,23 @@ typedef struct Intersection
     int line2Id;
     Point* point;
 } Intersection;
+
+typedef struct PreprocessInfo
+{
+    Matrix* dilated;
+    Matrix* e;
+} PreprocessInfo;
+
+typedef struct DetectionInfo
+{
+    Square* bestSquare;
+    List* squares;
+    int numSquares;
+    List* intersections;
+    int numIntersections;
+    Line* cartesianLines;
+    int numLines;
+} DetectionInfo;
 
 namespace Imagery
 {
@@ -140,6 +158,12 @@ namespace Imagery
     ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, float rotationAngle);
 
     Matrix** Split(const Matrix& matrix);
+
+    PreprocessInfo* Preprocess(const QString& imgPath, const QString& savePath);
+
+    DetectionInfo* Detection(const PreprocessInfo* PreprocessInfo, const QString& savePath);
+
+    void ProcessImage(const QString& imagePath);
 };
 
 #endif //SUDOKUOCR_IMAGERY_H
