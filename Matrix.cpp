@@ -260,7 +260,7 @@ void Matrix::IntPrint() const
 
 Matrix::~Matrix()
 {
-#if USE_SSE2 || USE_SSE3
+#if USE_SSE2 || USE_SSE3 || USE_AVX2
 	_mm_free(data);
 #else
 	delete[] data;

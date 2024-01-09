@@ -7,13 +7,12 @@
 #include "NetworkUtils.h"
 #include "DatasetManager.h"
 #include "../Tools/Settings.h"
-#include <pthread.h>
+#include <iostream>
+#include <unistd.h>
 
 #if MULTITHREAD
 
-#include <unistd.h>
-#include <iostream>
-
+#include <pthread.h>
 #endif
 
 void* NeuralNetwork::BackpropagationThread(void* arg)

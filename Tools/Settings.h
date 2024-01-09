@@ -20,7 +20,7 @@
 #define WINW 700
 #define WINH 700
 
-#define SAVE_FOLD "./out/"
+#define SAVE_FOLD "out"
 
 #define BIL_FIL_DIAM 3
 #define BIL_FIL_SIG_COL 3

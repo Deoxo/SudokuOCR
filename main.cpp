@@ -4,8 +4,6 @@
 #include <QLocale>
 #include <QTranslator>
 #include <QFileInfo>
-#include "Imagery/Imagery.h"
-#include "Tools/FileManagement.h"
 
 namespace fs = std::filesystem;
 
@@ -32,29 +30,5 @@ int GUI(int argc, char** argv)
 
 int main(int argc, char** argv)
 {
-	// Checks the number of arguments.
-	if (argc != 3)
-		throw std::runtime_error("Usage: image-file test/gui");
-
-	// Sets selected mode
-	const int gui = strcmp(argv[2], "test") == 0 ? 0 : (strcmp(argv[2], "gui") == 0 ? 1 : 2);
-
-	if (gui)
-	{
-		char** v = new char* [1];
-		v[0] = argv[0];
-		int r = GUI(1, argv);
-		delete[] v;
-		return r;
-	}
-
-	// Quits if mode does not exist
-	if (gui == 2)
-		throw std::runtime_error("Usage: image-file test/gui");
-
-	// Get the name of the image
-	const QString* imgName = FileManagement::GetFileName(argv[1]);
-
-	Imagery::ProcessImage(*imgName);
-	return 0;
+	return GUI(argc, argv);
 }

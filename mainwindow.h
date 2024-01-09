@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QCloseEvent>
+#include "Core.h"
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -32,9 +33,13 @@ public slots:
 
 	void OnImageValidated();
 
+	void OnStepCompleted(const QString& stepName);
+
 private:
 	Ui::MainWindow* ui;
 	QString imgPath;
+	QString savePath;
+	Core* core;
 };
 
 #endif // MAINWINDOW_H

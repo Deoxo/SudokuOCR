@@ -157,13 +157,7 @@ namespace Imagery
 	Matrix*
 	ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, float rotationAngle);
 
-	Matrix** Split(const Matrix& matrix);
-
-	PreprocessInfo* Preprocess(const QString& imgPath, const QString& savePath);
-
-	DetectionInfo* Detection(const PreprocessInfo* PreprocessInfo, const QString& savePath);
-
-	void ProcessImage(const QString& imagePath);
+    Matrix** Split(const Matrix& matrix);
 };
 
 #endif //SUDOKUOCR_IMAGERY_H

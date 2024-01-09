@@ -9,13 +9,13 @@
 
 namespace FileManagement
 {
-    // Returns the name of the file at the end of the path without the extension
-    QString* GetFileName(const QString& path);
+	// Returns the name of the file at the end of the path without the extension
+	QString GetFileName(const QString& path);
 
-    // Removes all the files in a folder but not the folder itself
-    void ClearFolder(const QString& path);
+	// Removes all the files in a folder but not the folder itself
+	void ClearFolder(const QString& path);
 
-    void CreateDirectory(const QString& path);
+	void CreateDirectory(const QString& path);
 }
 
 #endif //SUDOKUOCR_FILEMANAGEMENT_H

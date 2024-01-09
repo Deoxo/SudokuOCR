@@ -16,11 +16,6 @@ void ImageDisplay::resizeEvent(QResizeEvent* event)
 		UpdateImage();
 }
 
-float Ratio(const QSize& size)
-{
-	return size.width() / (float) size.height();
-}
-
 void ImageDisplay::UpdateImage()
 {
 	QPixmap scaled = originalPixmap.scaled(size(), Qt::KeepAspectRatio, Qt::SmoothTransformation);

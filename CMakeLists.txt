@@ -73,6 +73,7 @@ if (${QT_VERSION_MAJOR} GREATER_EQUAL 6)
             ${PROJECT_SOURCES}
             ImgSelectorButton.h ImgSelectorButton.cpp
             ImageDisplay.h ImageDisplay.cpp
+            Core.h Core.cpp
 
 
     )
