@@ -6,6 +6,9 @@
 #include <QMessageBox>
 #include <ImgSelectorButton.h>
 #include <QtConcurrent/QtConcurrent>
+#include <QGraphicsPixmapItem>
+#include "ShapeDefiner.h"
+#include <QGraphicsEllipseItem>
 
 MainWindow::MainWindow(QWidget* parent)
 		: QMainWindow(parent), ui(new Ui::MainWindow)
@@ -19,13 +22,16 @@ MainWindow::MainWindow(QWidget* parent)
 	connect(ui->validateButton_1, &QPushButton::clicked, this, &MainWindow::OnImageValidated);
 
 	core = new Core();
+	ui->imgDisplay_2->setAlignment(Qt::AlignCenter);
 	connect(core, &Core::StepCompleted, this, &MainWindow::OnStepCompleted);
+	connect(core, &Core::OnVerticesDetected, this, &MainWindow::OnVerticesDetected);
 }
 
 MainWindow::~MainWindow()
 {
 	delete ui;
-	delete core;
+    delete core;
+    delete scene;
 }
 
 void MainWindow::OnImageSelected(const QString& filePath)
@@ -63,4 +69,14 @@ void MainWindow::OnStepCompleted(const QString& stepName)
 {
 	qDebug() << stepName;
 	ui->imgDisplay_2->SetImage(savePath + stepName + ".png");
+}
+
+void MainWindow::OnVerticesDetected(QPoint* vertices)
+{
+    ui->ShapeDefiner_3->SetImage(imgPath);
+    qDebug() << ui ->ShapeDefiner_3->size();
+    for (int i = 0; i < 4; i++)
+        qDebug() << vertices[i];
+    ui->ShapeDefiner_3->SetVertices(vertices);
+	ui->stackedWidget->setCurrentIndex(3);
 }

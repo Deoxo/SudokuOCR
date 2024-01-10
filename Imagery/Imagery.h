@@ -6,6 +6,7 @@
 #define SUDOKUOCR_IMAGERY_H
 
 #include <QString>
+#include <QPointF>
 #include "../Matrix.h"
 #include "../Tools/List.h"
 
@@ -157,7 +158,9 @@ namespace Imagery
 	Matrix*
 	ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, float rotationAngle);
 
-    Matrix** Split(const Matrix& matrix);
+	Matrix** Split(const Matrix& matrix);
+
+    QPoint PointToQPoint(const Point& p);
 };
 
 #endif //SUDOKUOCR_IMAGERY_H

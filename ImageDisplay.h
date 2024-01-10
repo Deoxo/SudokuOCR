@@ -2,6 +2,7 @@
 #define IMAGEDISPLAY_H
 
 #include <QLabel>
+#include <QPaintEvent>
 
 class ImageDisplay : public QLabel
 {
@@ -12,12 +13,13 @@ public:
 
 	void SetImage(const QString& imgPath);
 
-	void resizeEvent(QResizeEvent* event);
+protected:
+    void resizeEvent(QResizeEvent* event) override;
 
-private:
+protected:
 	void UpdateImage();
 
-	QPixmap originalPixmap;
+    QPixmap originalPixmap;
 };
 
 #endif // IMAGEDISPLAY_H

@@ -155,6 +155,12 @@ DetectionInfo* Core::Detection(const PreprocessInfo* PreprocessInfo, const QStri
 		printf("Top left: ");
 		Imagery::PrintPointScreenCoordinates(&bestSquare->topLeft, sw, sh, sw, sh);
 	}
+    QPoint* vertices = new QPoint[] {Imagery::PointToQPoint(bestSquare->topRight),
+                         Imagery::PointToQPoint(bestSquare->bottomRight),
+                         Imagery::PointToQPoint(bestSquare->bottomLeft),
+                         Imagery::PointToQPoint(bestSquare->topLeft)};
+	emit OnVerticesDetected(vertices);
+	return nullptr;
 
 	Matrix* rotated = Imagery::Rotation(*PreprocessInfo->e, *bestSquare, -angle);
 	StepCompletedWrapper(*rotated, "6-rotated", savePath);
@@ -216,7 +222,7 @@ void Core::ProcessImage(const QString& imagePath, const QString& savePath)
 	PreprocessInfo* preprocessInfo = Preprocess(imagePath, savePath);
 	qDebug() << "cc";
 	DetectionInfo* detectionInfo = Detection(preprocessInfo, savePath);
-
+	return;
 	int sw = preprocessInfo->e->cols, sh = preprocessInfo->e->rows;
 	Square* bestSquare = detectionInfo->bestSquare;
 	List* squares = detectionInfo->squares;

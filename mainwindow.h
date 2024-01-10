@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QCloseEvent>
 #include "Core.h"
+#include <QGraphicsScene>
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -19,7 +20,7 @@ Q_OBJECT
 public:
 	MainWindow(QWidget* parent = nullptr);
 
-	~MainWindow();
+    ~MainWindow();
 
 signals:
 
@@ -35,11 +36,14 @@ public slots:
 
 	void OnStepCompleted(const QString& stepName);
 
+    void OnVerticesDetected(QPoint* vertices);
+
 private:
 	Ui::MainWindow* ui;
 	QString imgPath;
 	QString savePath;
-	Core* core;
+    Core* core;
+    QGraphicsScene* scene;
 };
 
 #endif // MAINWINDOW_H

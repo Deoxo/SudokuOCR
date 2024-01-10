@@ -33,7 +33,7 @@
        <enum>QFrame::NoFrame</enum>
       </property>
       <property name="currentIndex">
-       <number>2</number>
+       <number>3</number>
       </property>
       <widget class="QWidget" name="page_0">
        <layout class="QGridLayout" name="gridLayout_2">
@@ -49,62 +49,6 @@
         <property name="bottomMargin">
          <number>9</number>
         </property>
-        <item row="2" column="0">
-         <layout class="QHBoxLayout" name="horizontalLayout" stretch="0,0,0">
-          <property name="leftMargin">
-           <number>9</number>
-          </property>
-          <property name="topMargin">
-           <number>9</number>
-          </property>
-          <property name="rightMargin">
-           <number>9</number>
-          </property>
-          <property name="bottomMargin">
-           <number>9</number>
-          </property>
-          <item>
-           <widget class="QPushButton" name="pushButton_3">
-            <property name="text">
-             <string>PushButton</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QPushButton" name="pushButton_2">
-            <property name="text">
-             <string>PushButton</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
-          </item>
-         </layout>
-        </item>
-        <item row="1" column="0">
-         <widget class="ImgSelectorButton" name="ImageSelectorButton">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>100</height>
-           </size>
-          </property>
-          <property name="text">
-           <string>Drag image or click to select from disk</string>
-          </property>
-         </widget>
-        </item>
         <item row="0" column="0">
          <widget class="QTextBrowser" name="textBrowser">
           <property name="enabled">
@@ -138,6 +82,19 @@ li.checked::marker { content: &quot;\2612&quot;; }
           </property>
          </widget>
         </item>
+        <item row="1" column="0">
+         <widget class="ImgSelectorButton" name="ImageSelectorButton">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>100</height>
+           </size>
+          </property>
+          <property name="text">
+           <string>Drag image or click to select from disk</string>
+          </property>
+         </widget>
+        </item>
        </layout>
       </widget>
       <widget class="QWidget" name="page_1">
@@ -160,7 +117,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
            </widget>
           </item>
           <item>
-           <spacer name="horizontalSpacer_2">
+           <spacer name="horizontalSpacer_1">
             <property name="orientation">
              <enum>Qt::Horizontal</enum>
             </property>
@@ -181,7 +138,7 @@ li.checked::marker { content: &quot;\2612&quot;; }
           </item>
          </layout>
         </item>
-        <item row="0" column="0">
+        <item row="0" column="0" alignment="Qt::AlignHCenter">
          <widget class="ImageDisplay" name="imgDisplay_1">
           <property name="sizePolicy">
            <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
@@ -204,9 +161,60 @@ li.checked::marker { content: &quot;\2612&quot;; }
         <item row="0" column="0">
          <widget class="ImageDisplay" name="imgDisplay_2">
           <property name="text">
-           <string/>
+           <string>ImageDisplay</string>
           </property>
          </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="page_3">
+       <layout class="QGridLayout" name="gridLayout_5">
+        <item row="0" column="0">
+         <widget class="ShapeDefiner" name="ShapeDefiner_3">
+          <property name="frameShape">
+           <enum>QFrame::NoFrame</enum>
+          </property>
+          <property name="text">
+           <string>ShapeDefiner</string>
+          </property>
+         </widget>
+        </item>
+        <item row="1" column="0">
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="validateButton_3">
+            <property name="text">
+             <string>Continue ✅</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer_2">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+         </layout>
         </item>
        </layout>
       </widget>
@@ -235,6 +243,11 @@ li.checked::marker { content: &quot;\2612&quot;; }
    <class>ImageDisplay</class>
    <extends>QLabel</extends>
    <header>ImageDisplay.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ShapeDefiner</class>
+   <extends>QLabel</extends>
+   <header>ShapeDefiner.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

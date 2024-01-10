@@ -2,7 +2,8 @@
 
 ImageDisplay::ImageDisplay(QWidget* parent) : QLabel(parent)
 {
-	setMinimumSize(100, 100);
+    setMinimumSize(100, 100);
+    setAlignment(Qt::AlignCenter);
 }
 
 

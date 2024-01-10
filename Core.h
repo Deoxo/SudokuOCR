@@ -23,6 +23,8 @@ public:
 signals:
 
 	void StepCompleted(const QString& imgPath);
+
+    void OnVerticesDetected(QPoint* vertices);
 };
 
 #endif // CORE_H
