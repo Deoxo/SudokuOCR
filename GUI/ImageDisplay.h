@@ -9,17 +9,17 @@ class ImageDisplay : public QLabel
 Q_OBJECT
 
 public:
-	ImageDisplay(QWidget* parent);
+	explicit ImageDisplay(QWidget* parent);
 
 	void SetImage(const QString& imgPath);
 
 protected:
-    void resizeEvent(QResizeEvent* event) override;
+	void resizeEvent(QResizeEvent* event) override;
 
 protected:
 	void UpdateImage();
 
-    QPixmap originalPixmap;
+	QPixmap originalPixmap;
 };
 
 #endif // IMAGEDISPLAY_H

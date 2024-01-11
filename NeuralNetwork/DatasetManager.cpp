@@ -27,7 +27,7 @@ Matrix*** LoadMnist(const char* path, const int dataLength, const int format2D)
 
 	char* line = nullptr;
 	size_t len = 0;
-	int i = 0, ind = 0;
+	int i, ind = 0;
 
 	while (ind < dataLength && getline(&line, &len, file) != -1)
 	{

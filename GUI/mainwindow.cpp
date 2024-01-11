@@ -13,6 +13,7 @@
 MainWindow::MainWindow(QWidget* parent)
 		: QMainWindow(parent), ui(new Ui::MainWindow)
 {
+	setWindowTitle("SudokuOCR - Menu");
 	ui->setupUi(this);
 	ui->stackedWidget->setCurrentIndex(0);
 
@@ -21,6 +22,8 @@ MainWindow::MainWindow(QWidget* parent)
 	connect(ui->backButton_1, &QPushButton::clicked, this, &MainWindow::GoToPage0);
 	connect(ui->validateButton_1, &QPushButton::clicked, this, &MainWindow::OnImageValidated);
 	connect(ui->validateButton_3, &QPushButton::clicked, this, &MainWindow::OnShapeValidated);
+	connect(ui->validateButton_4, &QPushButton::clicked, this, &MainWindow::OnAllDigitsValidated);
+	connect(ui->menuButton_5, &QPushButton::clicked, this, &MainWindow::GoToPage0);
 
 	core = new Core();
 	ui->imgDisplay_2->setAlignment(Qt::AlignCenter);
@@ -69,6 +72,7 @@ MainWindow::~MainWindow()
 
 void MainWindow::OnImageSelected(const QString& filePath)
 {
+	setWindowTitle("SudokuOCR - Validation");
 	imgPath = QString(filePath);
 	// Switch to page 2
 	ui->stackedWidget->setCurrentIndex(1);
@@ -87,10 +91,12 @@ void MainWindow::OnImageSelected(const QString& filePath)
 void MainWindow::GoToPage0()
 {
 	ui->stackedWidget->setCurrentIndex(0);
+	setWindowTitle("SudokuOCR - Menu");
 }
 
 void MainWindow::OnImageValidated()
 {
+	setWindowTitle("SudokuOCR - Preprocessing");
 	ui->stackedWidget->setCurrentIndex(2);
 	ui->imgDisplay_2->SetImage(imgPath);
 	connect(&watcher, &QFutureWatcher<DetectionInfo*>::finished, this, [&]()
@@ -108,6 +114,7 @@ void MainWindow::OnStepCompleted(const QString& stepName)
 
 void MainWindow::OnVerticesDetected(QPoint* vertices)
 {
+	setWindowTitle("SudokuOCR - Borders detection");
 	ui->ShapeDefiner_3->SetImage(imgPath);
 	ui->ShapeDefiner_3->SetVertices(vertices);
 	ui->stackedWidget->setCurrentIndex(3);
@@ -115,6 +122,7 @@ void MainWindow::OnVerticesDetected(QPoint* vertices)
 
 void MainWindow::OnShapeValidated()
 {
+	setWindowTitle("SudokuOCR - Digits detection");
 	ui->imgDisplay_4->SetImage(imgPath);
 	ui->stackedWidget->setCurrentIndex(4);
 	core->DigitDetection(detectionInfo, savePath);
@@ -146,4 +154,17 @@ void MainWindow::OnDigitModified()
 		delete result;
 	}
 	else ui->validateButton_4->setEnabled(false);
+}
+
+void MainWindow::OnAllDigitsValidated()
+{
+	setWindowTitle("SudokuOCR - Result");
+	Matrix* board = new Matrix(9, 9, 1);
+	for (int i = 0; i < 81; ++i)
+		board->data[i] = (float) spinBoxes[i]->value();
+
+	Matrix* result = Solver::Solve(*board);
+	core->SaveSudokuImage(*result, 600, savePath + "result.png");
+	ui->imgDisplay_5->SetImage(savePath + "result.png");
+	ui->stackedWidget->setCurrentIndex(5);
 }

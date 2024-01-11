@@ -19,13 +19,13 @@ int GUI(int argc, char** argv)
 		const QString baseName = "SudokuOCR_" + QLocale(locale).name();
 		if (translator.load(":/i18n/" + baseName))
 		{
-			a.installTranslator(&translator);
+			QApplication::installTranslator(&translator);
 			break;
 		}
 	}
 	MainWindow w;
 	w.show();
-	return a.exec();
+	return QApplication::exec();
 }
 
 int main(int argc, char** argv)

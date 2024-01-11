@@ -4,7 +4,6 @@
 
 #include "Solver.h"
 #include <iostream>
-#include <queue>
 #include <list>
 
 namespace Solver

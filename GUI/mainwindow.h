@@ -20,9 +20,9 @@ class MainWindow : public QMainWindow
 Q_OBJECT
 
 public:
-	MainWindow(QWidget* parent = nullptr);
+	explicit MainWindow(QWidget* parent = nullptr);
 
-	~MainWindow();
+	~MainWindow() override;
 
 	void OnDigitsRecognized(const Matrix* digits);
 
@@ -46,16 +46,18 @@ public slots:
 
 	void OnDigitModified();
 
+	void OnAllDigitsValidated();
+
 private:
 	Ui::MainWindow* ui;
 	QString imgPath;
 	QString savePath;
 	Core* core;
 
-	DetectionInfo* detectionInfo;
+	DetectionInfo* detectionInfo = nullptr;
 	QFutureWatcher<DetectionInfo*> watcher;
 
-	QSpinBox* spinBoxes[81];
+	QSpinBox* spinBoxes[81]{};
 };
 
 #endif // MAINWINDOW_H

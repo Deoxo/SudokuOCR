@@ -3,8 +3,6 @@
 //
 
 #include "NetworkUtils.h"
-#include "Layer.h"
-#include <mm_malloc.h>
 
 float Sigmoid_(const float x)
 {

@@ -120,7 +120,7 @@ void AdamOptimizer::Compile(const int numParams)
 	biasCorrectedMomentum2 = new float[numParams]();
 }
 
-AdamOptimizer::AdamOptimizer(FILE* file) : Optimizer(Adam)
+AdamOptimizer::AdamOptimizer(FILE* file [[maybe_unused]]) : Optimizer(Adam)
 {
 	alpha = beta1 = beta2 = gamma = adjBeta1 = adjBeta2 = 0;
 	momentum1 = momentum2 = biasCorrectedMomentum1 = biasCorrectedMomentum2 = nullptr;

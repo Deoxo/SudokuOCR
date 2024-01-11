@@ -14,9 +14,9 @@ public:
 	ImgSelectorButton(QWidget* parent = nullptr);
 
 protected:
-	void dropEvent(QDropEvent* event);
+	void dropEvent(QDropEvent* event) override;
 
-	void dragEnterEvent(QDragEnterEvent* event);
+	void dragEnterEvent(QDragEnterEvent* event) override;
 
 signals:
 

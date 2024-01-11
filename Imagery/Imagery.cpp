@@ -6,8 +6,6 @@
 #include <QImage>
 #include <QDir>
 #include "../Tools/Settings.h"
-#include "GridDetection.h"
-#include "NeuralNetwork/Network.h"
 #include "Tools/FileManagement.h"
 
 namespace Imagery
@@ -651,7 +649,7 @@ namespace Imagery
 		const int s2 = std::max(width, height) / 16;
 		float* integralImg = new float[width * height]();
 		float sum = 0;
-		int count = 0;
+		int count;
 		int x1, y1, x2, y2;
 
 		for (int y = 0; y < height; y++)
@@ -767,9 +765,9 @@ namespace Imagery
 		const int height = m.rows;
 		const int radius = blockSize / 2;
 
-		float sum = 0.f;
-		float sum2 = 0.f;
-		int count = 0;
+		float sum;
+		float sum2;
+		int count;
 
 		float res = 0.f;
 
@@ -1292,9 +1290,9 @@ namespace Imagery
 		return res;
 	}
 
-    QPoint PointToQPoint(const Point& p)
+	QPoint PointToQPoint(const Point& p)
 	{
-        return {(int) p.x, (int) p.y};
+		return {(int) p.x, (int) p.y};
 	}
 
 }

@@ -14,9 +14,11 @@ public:
 
 	[[nodiscard]] DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePath) const;
 
-	void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath);
+	void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath) const;
 
 	void StepCompletedWrapper(const Matrix& img, const QString& stepName, const QString& savePath) const;
+
+	void SaveSudokuImage(const Matrix& sudokuMatrix, int size, const QString& filePath);
 
 signals:
 

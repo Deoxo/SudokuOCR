@@ -4,9 +4,10 @@
 #include "NeuralNetwork/Network.h"
 #include <QDir>
 #include <iostream>
+#include <QPainter>
 
 Core::Core()
-{}
+= default;
 
 DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& savePath) const
 {
@@ -116,7 +117,6 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	//printf("Angle: %s%i%s\n", MAGENTA, ComputeImageAngle(lines, numLines), RESET);
 
 	// Get intersections
-	int numIntersections = 0;
 	List* intersections = GridDetection::FindIntersections2(cartesianLines, numLines, sw, sh);
 
 	// Get squares
@@ -171,7 +171,7 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	return detectionInfo;
 }
 
-void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath)
+void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath) const
 {
 	Matrix* rotated = Imagery::Rotation(*detectionInfo->e, *detectionInfo->bestSquare, -detectionInfo->angle);
 	Matrix* cropped = Imagery::ExtractSudokuFromStraightImg(*rotated, *detectionInfo->bestSquare, -detectionInfo->angle);
@@ -216,4 +216,76 @@ void Core::StepCompletedWrapper(const Matrix& img, const QString& stepName, cons
 {
 	img.SaveAsImg(savePath, stepName);
 	emit StepCompleted(stepName);
+}
+
+void Core::SaveSudokuImage(const Matrix& sudokuMatrix, const int size, const QString& filePath)
+{
+	// Adjust the image size to fit the larger borders and lines
+	int imageSize = size + 5; // Increase the size by 10 pixels for larger borders
+
+	// Create an image with the adjusted size
+	QImage sudokuImage(imageSize, imageSize, QImage::Format_RGB32);
+	sudokuImage.fill(Qt::white); // Set background color to white
+
+	// Create a QPainter to draw on the image
+	QPainter painter(&sudokuImage);
+	painter.setRenderHint(QPainter::Antialiasing, true);
+
+	// Set font properties
+	QFont font("Arial", 20);
+	painter.setFont(font);
+
+	// Calculate cell size based on the image dimensions and the number of rows and columns
+	int cellSize = size / sudokuMatrix.cols;
+
+	// Calculate block size (3x3 block)
+	int blockSize = size / 3;
+
+	// Draw larger borders on the outside
+	painter.drawRect(0, 0, imageSize - 1, imageSize - 1);
+
+	// Loop through the Sudoku matrix and draw digits, borders, and lines
+	for (int row = 0; row < sudokuMatrix.rows; ++row)
+	{
+		for (int col = 0; col < sudokuMatrix.cols; ++col)
+		{
+			int digit = static_cast<int>(sudokuMatrix.data[row * sudokuMatrix.cols + col]);
+
+			// Calculate the position of the cell
+			int x = col * cellSize + 5; // Offset by 5 pixels for larger borders
+			int y = row * cellSize + 5; // Offset by 5 pixels for larger borders
+
+			// Draw borders between blocks
+			if (col % 3 == 0 && col > 0)
+				painter.drawRect(x, y - 1, 1, blockSize + 1);
+
+			if (row % 3 == 0 && row > 0)
+				painter.drawRect(x - 1, y, blockSize + 1, 1);
+
+			// Draw borders around each cell
+			painter.drawRect(x, y, cellSize, cellSize);
+
+			// Skip drawing zeros (empty cells)
+			if (digit != 0)
+			{
+				// Calculate the position of the digit in the cell
+				int digitX = x + cellSize *2 / 5;
+				int digitY = y + cellSize * 2 / 3;
+
+				// Draw the digit
+				painter.drawText(digitX, digitY, QString::number(digit));
+			}
+		}
+	}
+
+	// Outside border
+	painter.setPen(QPen(Qt::black, 10));
+	painter.drawRect(0, 0, imageSize - 1, imageSize - 1);
+
+	// Save the image to the specified file path
+	if (!sudokuImage.save(filePath))
+	{
+		// Handle the case where saving fails
+		qDebug() << "Error: Unable to save the Sudoku image.";
+	}
 }
