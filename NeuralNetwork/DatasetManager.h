@@ -5,7 +5,7 @@
 #ifndef S3PROJECT_DATASETMANAGER_H
 #define S3PROJECT_DATASETMANAGER_H
 
-#include "../Matrix.h"
+#include "Tools/Matrix.h"
 
 Matrix*** LoadMnist(const char* path, int dataLength, int format2D);
 

@@ -5,7 +5,7 @@
 #ifndef SUDOKUOCR_COSTFUNCTION_H
 #define SUDOKUOCR_COSTFUNCTION_H
 
-#include "../Matrix.h"
+#include "Tools/Matrix.h"
 #include "NetworkUtils.h"
 
 class CostFunction

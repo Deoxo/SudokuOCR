@@ -5,7 +5,7 @@
 #ifndef S3PROJECT_NETWORKUTILS_H
 #define S3PROJECT_NETWORKUTILS_H
 
-#include "../Matrix.h"
+#include "Tools/Matrix.h"
 
 typedef struct LayerShape
 {

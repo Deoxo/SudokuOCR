@@ -4,10 +4,10 @@
 #include "Tools/Settings.h"
 #include <QImageReader>
 #include <QMessageBox>
-#include <ImgSelectorButton.h>
+#include "GUI/ImgSelectorButton.h"
 #include <QtConcurrent/QtConcurrent>
 #include <QGraphicsPixmapItem>
-#include "ShapeDefiner.h"
+#include "GUI/ShapeDefiner.h"
 #include <QGraphicsEllipseItem>
 
 MainWindow::MainWindow(QWidget* parent)
@@ -91,7 +91,7 @@ void MainWindow::OnShapeValidated()
 void MainWindow::OnDigitsRecognized(const Matrix* digits)
 {
 	digits->IntPrint();
-	QGridLayout* gridLayout = ui->gridLayout_4_;
+	QGridLayout * gridLayout = ui->gridLayout_4_;
 
 	const int rowCount = gridLayout->rowCount();
 	const int columnCount = gridLayout->columnCount();
@@ -107,7 +107,7 @@ void MainWindow::OnDigitsRecognized(const Matrix* digits)
 			if (item)
 			{
 				// Handle the widget or layout item
-				QWidget* widget = item->widget();
+				QWidget * widget = item->widget();
 				if (widget)
 				{
 					QSpinBox* spinBox = qobject_cast<QSpinBox*>(widget);

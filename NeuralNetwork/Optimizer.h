@@ -5,7 +5,7 @@
 #ifndef SUDOKUOCR_OPTIMIZER_H
 #define SUDOKUOCR_OPTIMIZER_H
 
-#include "../Matrix.h"
+#include "Tools/Matrix.h"
 #include "NetworkUtils.h"
 
 class Optimizer

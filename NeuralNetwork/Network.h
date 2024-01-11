@@ -5,7 +5,7 @@
 #ifndef S3PROJECT_NETWORK_H
 #define S3PROJECT_NETWORK_H
 
-#include "../Matrix.h"
+#include "Tools/Matrix.h"
 #include "NetworkUtils.h"
 #include "Layer.h"
 #include "CostFunction.h"

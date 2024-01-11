@@ -36,11 +36,11 @@ endif ()
 
 set(PROJECT_SOURCES
         main.cpp
-        mainwindow.cpp
-        mainwindow.h
-        mainwindow.ui
-        Matrix.h
-        Matrix.cpp
+        GUI/mainwindow.cpp
+        GUI/mainwindow.h
+        GUI/mainwindow.ui
+        Tools/Matrix.h
+        Tools/Matrix.cpp
         Imagery/Imagery.cpp
         Imagery/Imagery.h
         Imagery/GridDetection.cpp
@@ -66,15 +66,15 @@ set(PROJECT_SOURCES
         NeuralNetwork/Optimizer.cpp
         NeuralNetwork/Optimizer.h
 )
-include_directories (${PROJECT_SOURCE_DIR})
+include_directories(${PROJECT_SOURCE_DIR})
 if (${QT_VERSION_MAJOR} GREATER_EQUAL 6)
     qt_add_executable(SudokuOCR
             MANUAL_FINALIZATION
             ${PROJECT_SOURCES}
-            ImgSelectorButton.h ImgSelectorButton.cpp
-            ImageDisplay.h ImageDisplay.cpp
+            GUI/ImgSelectorButton.h GUI/ImgSelectorButton.cpp
+            GUI/ImageDisplay.h GUI/ImageDisplay.cpp
             Core.h Core.cpp
-            ShapeDefiner.h ShapeDefiner.cpp
+            GUI/ShapeDefiner.h GUI/ShapeDefiner.cpp
 
 
     )

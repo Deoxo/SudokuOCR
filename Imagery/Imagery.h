@@ -7,7 +7,7 @@
 
 #include <QString>
 #include <QPointF>
-#include "../Matrix.h"
+#include "Tools/Matrix.h"
 #include "../Tools/List.h"
 
 typedef struct HoughLine

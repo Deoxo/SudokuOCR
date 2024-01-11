@@ -5,7 +5,7 @@
 #ifndef SUDOKUOCR_ACTIVATIONFUNCTION_H
 #define SUDOKUOCR_ACTIVATIONFUNCTION_H
 
-#include "../Matrix.h"
+#include "Tools/Matrix.h"
 #include "NetworkUtils.h"
 
 class ActivationFunction
