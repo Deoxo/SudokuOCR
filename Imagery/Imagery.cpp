@@ -1295,4 +1295,9 @@ namespace Imagery
 		return {(int) p.x, (int) p.y};
 	}
 
+	Point QPointToPoint(const QPoint& p)
+	{
+		return {(int) p.x(), (int) p.y()};
+	}
+
 }

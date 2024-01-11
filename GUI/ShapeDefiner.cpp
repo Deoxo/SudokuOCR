@@ -88,3 +88,21 @@ void ShapeDefiner::resizeEvent(QResizeEvent* event)
 		pts[i].setY(originalPts[i].y() * yRatio + yDiff / 2.f);
 	}
 }
+
+QPoint* ShapeDefiner::GetVertices()
+{
+	QPoint* unscaledPts = new QPoint[4];
+	QPixmap p = pixmap();
+	const float xRatio = originalPixmap.width() / (float) p.width();
+	const float yRatio = originalPixmap.height() / (float) p.height();
+	const int xDiff = geometry().width() - p.width();
+	const int yDiff = geometry().height() - p.height();
+
+	for (int i = 0; i < 4; i++)
+	{
+		unscaledPts[i].setX((pts[i].x() - xDiff / 2.f) * xRatio);
+		unscaledPts[i].setY((pts[i].y() - yDiff / 2.f) * yRatio);
+	}
+
+	return unscaledPts;
+}

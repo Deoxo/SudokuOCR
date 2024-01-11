@@ -33,7 +33,7 @@
        <enum>QFrame::NoFrame</enum>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>4</number>
       </property>
       <widget class="QWidget" name="page_0">
        <layout class="QGridLayout" name="gridLayout_2">
@@ -1247,6 +1247,96 @@ li.checked::marker { content: &quot;\2612&quot;; }
    <header>GUI/ShapeDefiner.h</header>
   </customwidget>
  </customwidgets>
+ <tabstops>
+  <tabstop>spinBox_00</tabstop>
+  <tabstop>spinBox_01</tabstop>
+  <tabstop>spinBox_02</tabstop>
+  <tabstop>spinBox_03</tabstop>
+  <tabstop>spinBox_04</tabstop>
+  <tabstop>spinBox_05</tabstop>
+  <tabstop>spinBox_06</tabstop>
+  <tabstop>spinBox_07</tabstop>
+  <tabstop>spinBox_08</tabstop>
+  <tabstop>spinBox_09</tabstop>
+  <tabstop>spinBox_10</tabstop>
+  <tabstop>spinBox_11</tabstop>
+  <tabstop>spinBox_12</tabstop>
+  <tabstop>spinBox_13</tabstop>
+  <tabstop>spinBox_14</tabstop>
+  <tabstop>spinBox_15</tabstop>
+  <tabstop>spinBox_16</tabstop>
+  <tabstop>spinBox_17</tabstop>
+  <tabstop>spinBox_18</tabstop>
+  <tabstop>spinBox_19</tabstop>
+  <tabstop>spinBox_20</tabstop>
+  <tabstop>spinBox_21</tabstop>
+  <tabstop>spinBox_22</tabstop>
+  <tabstop>spinBox_23</tabstop>
+  <tabstop>spinBox_24</tabstop>
+  <tabstop>spinBox_25</tabstop>
+  <tabstop>spinBox_26</tabstop>
+  <tabstop>spinBox_27</tabstop>
+  <tabstop>spinBox_28</tabstop>
+  <tabstop>spinBox_29</tabstop>
+  <tabstop>spinBox_30</tabstop>
+  <tabstop>spinBox_31</tabstop>
+  <tabstop>spinBox_32</tabstop>
+  <tabstop>spinBox_33</tabstop>
+  <tabstop>spinBox_34</tabstop>
+  <tabstop>spinBox_35</tabstop>
+  <tabstop>spinBox_36</tabstop>
+  <tabstop>spinBox_37</tabstop>
+  <tabstop>spinBox_38</tabstop>
+  <tabstop>spinBox_39</tabstop>
+  <tabstop>spinBox_40</tabstop>
+  <tabstop>spinBox_41</tabstop>
+  <tabstop>spinBox_42</tabstop>
+  <tabstop>spinBox_43</tabstop>
+  <tabstop>spinBox_44</tabstop>
+  <tabstop>spinBox_45</tabstop>
+  <tabstop>spinBox_46</tabstop>
+  <tabstop>spinBox_47</tabstop>
+  <tabstop>spinBox_48</tabstop>
+  <tabstop>spinBox_49</tabstop>
+  <tabstop>spinBox_50</tabstop>
+  <tabstop>spinBox_51</tabstop>
+  <tabstop>spinBox_52</tabstop>
+  <tabstop>spinBox_53</tabstop>
+  <tabstop>spinBox_54</tabstop>
+  <tabstop>spinBox_55</tabstop>
+  <tabstop>spinBox_56</tabstop>
+  <tabstop>spinBox_57</tabstop>
+  <tabstop>spinBox_58</tabstop>
+  <tabstop>spinBox_59</tabstop>
+  <tabstop>spinBox_60</tabstop>
+  <tabstop>spinBox_61</tabstop>
+  <tabstop>spinBox_62</tabstop>
+  <tabstop>spinBox_63</tabstop>
+  <tabstop>spinBox_64</tabstop>
+  <tabstop>spinBox_65</tabstop>
+  <tabstop>spinBox_66</tabstop>
+  <tabstop>spinBox_67</tabstop>
+  <tabstop>spinBox_68</tabstop>
+  <tabstop>spinBox_69</tabstop>
+  <tabstop>spinBox_70</tabstop>
+  <tabstop>spinBox_71</tabstop>
+  <tabstop>spinBox_72</tabstop>
+  <tabstop>spinBox_73</tabstop>
+  <tabstop>spinBox_74</tabstop>
+  <tabstop>spinBox_75</tabstop>
+  <tabstop>spinBox_76</tabstop>
+  <tabstop>spinBox_77</tabstop>
+  <tabstop>spinBox_78</tabstop>
+  <tabstop>spinBox_79</tabstop>
+  <tabstop>spinBox_80</tabstop>
+  <tabstop>validateButton_4</tabstop>
+  <tabstop>validateButton_3</tabstop>
+  <tabstop>textBrowser</tabstop>
+  <tabstop>ImageSelectorButton</tabstop>
+  <tabstop>backButton_1</tabstop>
+  <tabstop>validateButton_1</tabstop>
+  <tabstop>menuButton_5</tabstop>
+ </tabstops>
  <resources/>
  <connections/>
 </ui>

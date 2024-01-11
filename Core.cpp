@@ -174,7 +174,9 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath) const
 {
 	Matrix* rotated = Imagery::Rotation(*detectionInfo->e, *detectionInfo->bestSquare, -detectionInfo->angle);
+	rotated->SaveAsImg(savePath, "6-rotated");
 	Matrix* cropped = Imagery::ExtractSudokuFromStraightImg(*rotated, *detectionInfo->bestSquare, -detectionInfo->angle);
+	cropped->SaveAsImg(savePath, "7-cropped");
 	Imagery::RemoveLines(*cropped);
 	Matrix** cells = Imagery::Split(*cropped);
 	Matrix** borderlessCells = Imagery::CropBorders((const Matrix**) cells, BORDER_CROP_PERCENTAGE);
@@ -269,7 +271,7 @@ void Core::SaveSudokuImage(const Matrix& sudokuMatrix, const int size, const QSt
 			if (digit != 0)
 			{
 				// Calculate the position of the digit in the cell
-				int digitX = x + cellSize *2 / 5;
+				int digitX = x + cellSize * 2 / 5;
 				int digitY = y + cellSize * 2 / 3;
 
 				// Draw the digit

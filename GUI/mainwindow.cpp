@@ -125,6 +125,11 @@ void MainWindow::OnShapeValidated()
 	setWindowTitle("SudokuOCR - Digits detection");
 	ui->imgDisplay_4->SetImage(imgPath);
 	ui->stackedWidget->setCurrentIndex(4);
+	QPoint* vertices = ui->ShapeDefiner_3->GetVertices();
+	detectionInfo->bestSquare->topRight = Imagery::QPointToPoint(vertices[0]);
+	detectionInfo->bestSquare->bottomRight = Imagery::QPointToPoint(vertices[1]);
+	detectionInfo->bestSquare->bottomLeft = Imagery::QPointToPoint(vertices[2]);
+	detectionInfo->bestSquare->topLeft = Imagery::QPointToPoint(vertices[3]);
 	core->DigitDetection(detectionInfo, savePath);
 }
 

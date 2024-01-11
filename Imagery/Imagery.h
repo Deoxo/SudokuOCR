@@ -151,6 +151,8 @@ namespace Imagery
 	Matrix** Split(const Matrix& matrix);
 
 	QPoint PointToQPoint(const Point& p);
+
+	Point QPointToPoint(const QPoint& p);
 }
 
 #endif //SUDOKUOCR_IMAGERY_H
