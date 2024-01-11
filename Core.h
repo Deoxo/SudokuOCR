@@ -12,19 +12,19 @@ Q_OBJECT
 public:
 	Core();
 
-	PreprocessInfo* Preprocess(const QString& imgPath, const QString& savePath);
+	[[nodiscard]] DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePath) const;
 
-	DetectionInfo* Detection(const PreprocessInfo* PreprocessInfo, const QString& savePath);
+	void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath);
 
-	void ProcessImage(const QString& imagePath, const QString& savPath);
-
-	void StepCompletedWrapper(const Matrix& img, const QString& stepName, const QString& savePath);
+	void StepCompletedWrapper(const Matrix& img, const QString& stepName, const QString& savePath) const;
 
 signals:
 
-	void StepCompleted(const QString& imgPath);
+	void StepCompleted(const QString& imgPath) const;
 
-    void OnVerticesDetected(QPoint* vertices);
+	void OnVerticesDetected(QPoint* vertices) const;
+
+	void OnDigitsRecognized(const Matrix* digits) const;
 };
 
 #endif // CORE_H

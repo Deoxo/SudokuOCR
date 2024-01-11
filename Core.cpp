@@ -8,10 +8,10 @@
 Core::Core()
 {}
 
-PreprocessInfo* Core::Preprocess(const QString& imgPath, const QString& savePath)
+DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& savePath) const
 {
 	// Convert the image to grayscale and stores it in a matrix
-	Matrix* img = Imagery::LoadImageAsMatrix(imgPath);
+	Matrix* img = Imagery::LoadImageAsMatrix(imagePath);
 	Matrix* m = Imagery::ConvertToGrayscale(*img);
 	StepCompletedWrapper(*m, "0-grayscale", savePath);
 	//printf("Standard deviation: %f\n", StandardDeviation(m, 5));
@@ -100,16 +100,8 @@ PreprocessInfo* Core::Preprocess(const QString& imgPath, const QString& savePath
 	//MatFree(dilated);
 	//MatFree(canny);
 
-	PreprocessInfo* info = new PreprocessInfo();
-	info->dilated = dilated;
-	info->e = e;
 	qDebug() << "end";
-	return info;
-}
 
-DetectionInfo* Core::Detection(const PreprocessInfo* PreprocessInfo, const QString& savePath)
-{
-	Matrix* dilated = PreprocessInfo->dilated;
 	const int sw = dilated->cols, sh = dilated->rows;
 
 	// Get lines
@@ -160,14 +152,30 @@ DetectionInfo* Core::Detection(const PreprocessInfo* PreprocessInfo, const QStri
                          Imagery::PointToQPoint(bestSquare->bottomLeft),
                          Imagery::PointToQPoint(bestSquare->topLeft)};
 	emit OnVerticesDetected(vertices);
-	return nullptr;
 
-	Matrix* rotated = Imagery::Rotation(*PreprocessInfo->e, *bestSquare, -angle);
-	StepCompletedWrapper(*rotated, "6-rotated", savePath);
-	Matrix* cropped = Imagery::ExtractSudokuFromStraightImg(*rotated, *bestSquare, -angle);
-	StepCompletedWrapper(*cropped, "7-cropped", savePath);
+	DetectionInfo* detectionInfo = new DetectionInfo();
+
+	detectionInfo->bestSquare = bestSquare;
+	detectionInfo->e = e;
+	detectionInfo->angle = angle;
+
+	// Free memory
+	delete img;
+	delete m;
+	delete dilated;
+	delete[] lines;
+	delete[] cartesianLines;
+	delete intersections;
+	delete squares;
+
+	return detectionInfo;
+}
+
+void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath)
+{
+	Matrix* rotated = Imagery::Rotation(*detectionInfo->e, *detectionInfo->bestSquare, -detectionInfo->angle);
+	Matrix* cropped = Imagery::ExtractSudokuFromStraightImg(*rotated, *detectionInfo->bestSquare, -detectionInfo->angle);
 	Imagery::RemoveLines(*cropped);
-	StepCompletedWrapper(*cropped, "8-removedLines", savePath);
 	Matrix** cells = Imagery::Split(*cropped);
 	Matrix** borderlessCells = Imagery::CropBorders((const Matrix**) cells, BORDER_CROP_PERCENTAGE);
 	Matrix** resizedCells = Imagery::ResizeCellsTo28x28((const Matrix**) borderlessCells);
@@ -189,10 +197,7 @@ DetectionInfo* Core::Detection(const PreprocessInfo* PreprocessInfo, const QStri
 		digits->data[i] = (float) nn->Predict(*centeredCells[i]) + 1;
 	}
 
-	digits->IntPrint();
-
 	// Free memory
-	//free(lines);
 	delete nn;
 	for (int i = 0; i < 81; ++i)
 	{
@@ -203,52 +208,11 @@ DetectionInfo* Core::Detection(const PreprocessInfo* PreprocessInfo, const QStri
 	delete borderlessCells;
 	delete resizedCells;
 	delete emptyCells;
-	delete digits;
 
-	DetectionInfo* info = (DetectionInfo*) malloc(sizeof(DetectionInfo));
-	info->bestSquare = bestSquare;
-	info->squares = squares;
-	info->numSquares = numSquares;
-	info->intersections = intersections;
-	info->numIntersections = numIntersections;
-	info->cartesianLines = cartesianLines;
-	info->numLines = numLines;
-
-	return info;
+	emit OnDigitsRecognized(digits);
 }
 
-void Core::ProcessImage(const QString& imagePath, const QString& savePath)
-{
-	PreprocessInfo* preprocessInfo = Preprocess(imagePath, savePath);
-	qDebug() << "cc";
-	DetectionInfo* detectionInfo = Detection(preprocessInfo, savePath);
-	return;
-	int sw = preprocessInfo->e->cols, sh = preprocessInfo->e->rows;
-	Square* bestSquare = detectionInfo->bestSquare;
-	List* squares = detectionInfo->squares;
-	int numSquares = detectionInfo->numSquares;
-	List* intersections = detectionInfo->intersections;
-	int numIntersections = detectionInfo->numIntersections;
-	Line* cartesianLines = detectionInfo->cartesianLines;
-	int numLines = detectionInfo->numLines;
-
-	// Free memory
-	while (intersections != nullptr)
-	{
-		List* inter_li = (List*) intersections->data;
-		ListDeepFree(inter_li);
-		intersections = intersections->next;
-	}
-	ListFree(intersections);
-	delete (cartesianLines);
-	ListDeepFree(squares);
-	delete preprocessInfo->dilated;
-	delete preprocessInfo->e;
-	delete preprocessInfo;
-	delete detectionInfo;
-}
-
-void Core::StepCompletedWrapper(const Matrix& img, const QString& stepName, const QString& savePath)
+void Core::StepCompletedWrapper(const Matrix& img, const QString& stepName, const QString& savePath) const
 {
 	img.SaveAsImg(savePath, stepName);
 	emit StepCompleted(stepName);

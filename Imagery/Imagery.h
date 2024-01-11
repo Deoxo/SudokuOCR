@@ -50,21 +50,11 @@ typedef struct Intersection
 	Point* point;
 } Intersection;
 
-typedef struct PreprocessInfo
-{
-	Matrix* dilated;
-	Matrix* e;
-} PreprocessInfo;
-
 typedef struct DetectionInfo
 {
 	Square* bestSquare;
-	List* squares;
-	int numSquares;
-	List* intersections;
-	int numIntersections;
-	Line* cartesianLines;
-	int numLines;
+	Matrix* e;
+	float angle;
 } DetectionInfo;
 
 namespace Imagery
@@ -160,7 +150,7 @@ namespace Imagery
 
 	Matrix** Split(const Matrix& matrix);
 
-    QPoint PointToQPoint(const Point& p);
+	QPoint PointToQPoint(const Point& p);
 };
 
 #endif //SUDOKUOCR_IMAGERY_H

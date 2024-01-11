@@ -5,6 +5,7 @@
 #include <QCloseEvent>
 #include "Core.h"
 #include <QGraphicsScene>
+#include <QFutureWatcher>
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -20,7 +21,9 @@ Q_OBJECT
 public:
 	MainWindow(QWidget* parent = nullptr);
 
-    ~MainWindow();
+	~MainWindow();
+
+	void OnDigitsRecognized(const Matrix* digits);
 
 signals:
 
@@ -36,14 +39,18 @@ public slots:
 
 	void OnStepCompleted(const QString& stepName);
 
-    void OnVerticesDetected(QPoint* vertices);
+	void OnVerticesDetected(QPoint* vertices);
+
+	void OnShapeValidated();
 
 private:
 	Ui::MainWindow* ui;
 	QString imgPath;
 	QString savePath;
-    Core* core;
-    QGraphicsScene* scene;
+	Core* core;
+
+	DetectionInfo* detectionInfo;
+	QFutureWatcher<DetectionInfo*> watcher;
 };
 
 #endif // MAINWINDOW_H

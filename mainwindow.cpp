@@ -20,18 +20,19 @@ MainWindow::MainWindow(QWidget* parent)
 	connect(ui->ImageSelectorButton, &ImgSelectorButton::fileSelected, this, &MainWindow::OnImageSelected);
 	connect(ui->backButton_1, &QPushButton::clicked, this, &MainWindow::GoToPage0);
 	connect(ui->validateButton_1, &QPushButton::clicked, this, &MainWindow::OnImageValidated);
+	connect(ui->validateButton_3, &QPushButton::clicked, this, &MainWindow::OnShapeValidated);
 
 	core = new Core();
 	ui->imgDisplay_2->setAlignment(Qt::AlignCenter);
 	connect(core, &Core::StepCompleted, this, &MainWindow::OnStepCompleted);
 	connect(core, &Core::OnVerticesDetected, this, &MainWindow::OnVerticesDetected);
+	connect(core, &Core::OnDigitsRecognized, this, &MainWindow::OnDigitsRecognized);
 }
 
 MainWindow::~MainWindow()
 {
 	delete ui;
-    delete core;
-    delete scene;
+	delete core;
 }
 
 void MainWindow::OnImageSelected(const QString& filePath)
@@ -60,9 +61,11 @@ void MainWindow::OnImageValidated()
 {
 	ui->stackedWidget->setCurrentIndex(2);
 	ui->imgDisplay_2->SetImage(imgPath);
-	//core->ProcessImage(imgPath, savePath);
-	QFuture<void> _ = QtConcurrent::run([=]()
-										{ core->ProcessImage(imgPath, savePath); });
+	connect(&watcher, &QFutureWatcher<DetectionInfo*>::finished, this, [&]()
+	{ detectionInfo = watcher.result(); });
+	QFuture<DetectionInfo*> future = QtConcurrent::run([this]
+													   { return core->BordersDetection(imgPath, savePath); });
+	watcher.setFuture(future);
 }
 
 void MainWindow::OnStepCompleted(const QString& stepName)
@@ -73,10 +76,47 @@ void MainWindow::OnStepCompleted(const QString& stepName)
 
 void MainWindow::OnVerticesDetected(QPoint* vertices)
 {
-    ui->ShapeDefiner_3->SetImage(imgPath);
-    qDebug() << ui ->ShapeDefiner_3->size();
-    for (int i = 0; i < 4; i++)
-        qDebug() << vertices[i];
-    ui->ShapeDefiner_3->SetVertices(vertices);
+	ui->ShapeDefiner_3->SetImage(imgPath);
+	ui->ShapeDefiner_3->SetVertices(vertices);
 	ui->stackedWidget->setCurrentIndex(3);
+}
+
+void MainWindow::OnShapeValidated()
+{
+	ui->imgDisplay_4->SetImage(imgPath);
+	ui->stackedWidget->setCurrentIndex(4);
+	core->DigitDetection(detectionInfo, savePath);
+}
+
+void MainWindow::OnDigitsRecognized(const Matrix* digits)
+{
+	digits->IntPrint();
+	QGridLayout* gridLayout = ui->gridLayout_4_;
+
+	const int rowCount = gridLayout->rowCount();
+	const int columnCount = gridLayout->columnCount();
+
+	for (int row = 0; row < rowCount; ++row)
+	{
+		for (int col = 0; col < columnCount; ++col)
+		{
+			// Get the item at the current row and column
+			QLayoutItem* item = gridLayout->itemAtPosition(row, col);
+
+
+			if (item)
+			{
+				// Handle the widget or layout item
+				QWidget* widget = item->widget();
+				if (widget)
+				{
+					QSpinBox* spinBox = qobject_cast<QSpinBox*>(widget);
+					if (spinBox)
+						spinBox->setValue((int) digits->data[(row - 1) * columnCount + col]);
+
+				}
+			}
+		}
+	}
+	ui->validateButton_4->setEnabled(true);
 }
