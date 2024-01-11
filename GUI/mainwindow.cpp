@@ -6,9 +6,9 @@
 #include <QMessageBox>
 #include "GUI/ImgSelectorButton.h"
 #include <QtConcurrent/QtConcurrent>
-#include <QGraphicsPixmapItem>
-#include "GUI/ShapeDefiner.h"
+#include "Tools/Solver.h"
 #include <QGraphicsEllipseItem>
+#include <iostream>
 
 MainWindow::MainWindow(QWidget* parent)
 		: QMainWindow(parent), ui(new Ui::MainWindow)
@@ -27,6 +27,38 @@ MainWindow::MainWindow(QWidget* parent)
 	connect(core, &Core::StepCompleted, this, &MainWindow::OnStepCompleted);
 	connect(core, &Core::OnVerticesDetected, this, &MainWindow::OnVerticesDetected);
 	connect(core, &Core::OnDigitsRecognized, this, &MainWindow::OnDigitsRecognized);
+
+	QGridLayout * gridLayout = ui->gridLayout_4_;
+	for (int row = 1; row < 10; ++row)
+	{
+		for (int col = 0; col < 9; ++col)
+		{
+			// Get the item at the current row and column
+			int r = row, c = col;
+			if (r >= 4 && r <= 6)
+				r++;
+			else if (r >= 7)
+				r += 2;
+			if (c >= 3 && c <= 5)
+				c++;
+			else if (c >= 6)
+				c += 2;
+			QLayoutItem* item = gridLayout->itemAtPosition(r, c);
+
+
+			if (item)
+			{
+				// Handle the widget or layout item
+				QWidget * widget = item->widget();
+				if (widget)
+				{
+					QSpinBox* spinBox = qobject_cast<QSpinBox*>(widget);
+					if (spinBox)
+						spinBoxes[(row - 1) * 9 + col] = spinBox;
+				}
+			}
+		}
+	}
 }
 
 MainWindow::~MainWindow()
@@ -91,32 +123,27 @@ void MainWindow::OnShapeValidated()
 void MainWindow::OnDigitsRecognized(const Matrix* digits)
 {
 	digits->IntPrint();
-	QGridLayout * gridLayout = ui->gridLayout_4_;
-
-	const int rowCount = gridLayout->rowCount();
-	const int columnCount = gridLayout->columnCount();
-
-	for (int row = 0; row < rowCount; ++row)
+	for (int i = 0; i < 81; ++i)
 	{
-		for (int col = 0; col < columnCount; ++col)
-		{
-			// Get the item at the current row and column
-			QLayoutItem* item = gridLayout->itemAtPosition(row, col);
-
-
-			if (item)
-			{
-				// Handle the widget or layout item
-				QWidget * widget = item->widget();
-				if (widget)
-				{
-					QSpinBox* spinBox = qobject_cast<QSpinBox*>(widget);
-					if (spinBox)
-						spinBox->setValue((int) digits->data[(row - 1) * columnCount + col]);
-
-				}
-			}
-		}
+		spinBoxes[i]->setValue((int) digits->data[i]);
+		connect(spinBoxes[i], &QSpinBox::valueChanged, this, &MainWindow::OnDigitModified);
 	}
+
 	ui->validateButton_4->setEnabled(true);
+	OnDigitModified();
+}
+
+void MainWindow::OnDigitModified()
+{
+	Matrix* board = new Matrix(9, 9, 1);
+	for (int i = 0; i < 81; ++i)
+		board->data[i] = (float) spinBoxes[i]->value();
+
+	Matrix* result = Solver::Solve(*board);
+	if (result != nullptr)
+	{
+		ui->validateButton_4->setEnabled(true);
+		delete result;
+	}
+	else ui->validateButton_4->setEnabled(false);
 }

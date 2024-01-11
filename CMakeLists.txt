@@ -65,6 +65,8 @@ set(PROJECT_SOURCES
         NeuralNetwork/CostFunction.h
         NeuralNetwork/Optimizer.cpp
         NeuralNetwork/Optimizer.h
+        Tools/Solver.cpp
+        Tools/Solver.h
 )
 include_directories(${PROJECT_SOURCE_DIR})
 if (${QT_VERSION_MAJOR} GREATER_EQUAL 6)

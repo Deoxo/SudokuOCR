@@ -6,6 +6,7 @@
 #include "Core.h"
 #include <QGraphicsScene>
 #include <QFutureWatcher>
+#include <QSpinBox>
 
 QT_BEGIN_NAMESPACE
 namespace Ui
@@ -43,6 +44,8 @@ public slots:
 
 	void OnShapeValidated();
 
+	void OnDigitModified();
+
 private:
 	Ui::MainWindow* ui;
 	QString imgPath;
@@ -51,6 +54,8 @@ private:
 
 	DetectionInfo* detectionInfo;
 	QFutureWatcher<DetectionInfo*> watcher;
+
+	QSpinBox* spinBoxes[81];
 };
 
 #endif // MAINWINDOW_H
