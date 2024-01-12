@@ -7,6 +7,7 @@
 #include <QDir>
 #include "../Tools/Settings.h"
 #include "Tools/FileManagement.h"
+#include <iostream>
 
 namespace Imagery
 {
@@ -396,7 +397,8 @@ namespace Imagery
 				{
 					for (int theta = 0; theta < 180; theta++)
 					{
-						int rho = (int) std::round(y * cosTable[theta] + x * sinTable[theta]) + diagonal;
+						const int rho =
+								(int) std::round((float) y * cosTable[theta] + (float) x * sinTable[theta]) + diagonal;
 						accumulator->data[rho * accumulator->cols + theta] += 1;
 					}
 				}
@@ -447,8 +449,8 @@ namespace Imagery
 			for (int i = 0; i < dataLength; i++)
 			{
 				const int v = data[i];
-				const float d1 = std::abs(v - clusterCenters[0]);
-				const float d2 = std::abs(v - clusterCenters[1]);
+				const float d1 = std::abs((float) v - clusterCenters[0]);
+				const float d2 = std::abs((float) v - clusterCenters[1]);
 				if (d1 < d2)
 				{
 					cluster1[cluster1Length] = v;
@@ -468,20 +470,20 @@ namespace Imagery
 				sum2 += cluster2[i];
 			if (cluster1Length == 0)
 			{
-				clusterCenters[1] = sum2 / cluster2Length;
+				clusterCenters[1] = (float) sum2 / (float) cluster2Length;
 				clusterCenters[0] = clusterCenters[1];
 				changed = 1;
 			}
 			else if (cluster2Length == 0)
 			{
-				clusterCenters[0] = sum1 / cluster1Length;
+				clusterCenters[0] = (float) sum1 / (float) cluster1Length;
 				clusterCenters[1] = clusterCenters[0];
 				changed = 1;
 			}
 			else
 			{
-				const float newCenter1 = sum1 / cluster1Length;
-				const float newCenter2 = sum2 / cluster2Length;
+				const float newCenter1 = (float) sum1 / (float) cluster1Length;
+				const float newCenter2 = (float) sum2 / (float) cluster2Length;
 				if (newCenter1 != clusterCenters[0] || newCenter2 != clusterCenters[1])
 				{
 					changed = 1;
@@ -499,8 +501,8 @@ namespace Imagery
 		for (int i = 0; i < dataLength; i++)
 		{
 			const int v = data[i];
-			const float d1 = std::abs(v - clusterCenters[0]);
-			const float d2 = std::abs(v - clusterCenters[1]);
+			const float d1 = std::abs((float) v - clusterCenters[0]);
+			const float d2 = std::abs((float) v - clusterCenters[1]);
 			if (d1 < d2)
 				printf("1 ");
 			else
@@ -527,14 +529,14 @@ namespace Imagery
 			angles[i] %= 90; // keep only the angle in [0, 90[1
 			if (angles[i] == 0) // 0 angles mess up the algorithm, so we set them to 90
 				angles[i] = 90;
-			avg += angles[i];
+			avg += (float) angles[i];
 		}
 
 		avg /= (float) numLines;
 		for (int i = 0; i < numLines; ++i)
-			if (std::abs(angles[i] - avg) < 15)
+			if (std::abs((float) angles[i] - avg) < 15)
 			{
-				avg2 += angles[i];
+				avg2 += (float) angles[i];
 				avg2n++;
 			}
 		avg2 /= avg2n;
@@ -592,7 +594,7 @@ namespace Imagery
 
 							const float color_distance = (float) abs((int) (current - neighbor));
 
-							const float spatial_distance = sqrtf(powf(i, 2.f) + powf(j, 2.f));
+							const float spatial_distance = sqrtf(powf((float) i, 2.f) + powf((float) j, 2.f));
 							const float weight = expf(-color_distance / (2 * sigma_color * sigma_color) -
 													  spatial_distance / (2 * sigma_space * sigma_space));
 
@@ -684,7 +686,7 @@ namespace Imagery
 					  + integralImg[(x1 - 1) * height + (y1 - 1)];
 
 				// printf("Previous : %u\n", image->pixels[i][j].r);
-				if (m.data[j * m.cols + i] * count < sum * (1.0 - threshold))
+				if (m.data[j * m.cols + i] * (float) count < sum * (1.0 - threshold))
 					output.data[j * output.cols + i] = lowValue;
 
 				else
@@ -731,17 +733,18 @@ namespace Imagery
 
 	float SegmentBlackPercentage(const Matrix& img, const Point* p1, const Point* p2)
 	{
-		const float dist = (p1->x - p2->x) * (p1->x - p2->x) + (p1->y - p2->y) * (p1->y - p2->y);
+		const float dist =
+				(float) (p1->x - p2->x) * (float) (p1->x - p2->x) + (float) (p1->y - p2->y) * (float) (p1->y - p2->y);
 		if (dist == 0)
 			return 0;
-		const float vx = (p2->x - p1->x) / dist;
-		const float vy = (p2->y - p1->y) / dist;
+		const float vx = (float) (p2->x - p1->x) / dist;
+		const float vy = (float) (p2->y - p1->y) / dist;
 
 		int numBlackPixels = 0;
 		for (int i = 1; i < SEGMENT_BLACK_PERCENTAGE_NUM_SAMPLES; ++i)
 		{
-			const int px = p1->x + vx * (dist / i);
-			const int py = p1->y + vy * (dist / i);
+			const int px = (int) ((float) p1->x + vx * (dist / (float) i));
+			const int py = (int) ((float) p1->y + vy * (dist / (float) i));
 			if (img.data[py * img.cols + px] == 255)
 				numBlackPixels++;
 		}
@@ -756,7 +759,7 @@ namespace Imagery
 		float xRatio = (float) screenWidth / (float) imgWidth;
 		float yRatio = (float) screenHeight / (float) imgHeight;
 
-		printf("%i %i\n", (int) (point->x * xRatio), (int) (point->y * yRatio));
+		printf("%i %i\n", (int) ((float) point->x * xRatio), (int) ((float) point->y * yRatio));
 	}
 
 	float StandardDeviation(const Matrix& m, const int blockSize)
@@ -789,14 +792,14 @@ namespace Imagery
 						count++;
 					}
 				}
-				const float mean = sum / count;
-				const float variance = sum2 / count - mean * mean;
+				const float mean = sum / (float) count;
+				const float variance = sum2 / (float) count - mean * mean;
 				if (variance <= 0)
 					continue;
 				const float stdDev = sqrtf(variance);
 				rr += stdDev;
 			}
-			rr /= width - 2 * radius;
+			rr /= (float) width - 2.f * (float) radius;
 			res += rr;
 		}
 
@@ -842,7 +845,7 @@ namespace Imagery
 	{
 		const int numCells = 81;
 		const int cellSize = cells[0]->cols < cells[0]->rows ? cells[0]->cols : cells[0]->rows;
-		const int cropSize = (int) (cellSize * cropPercentage / 100.f);
+		const int cropSize = (int) ((float) cellSize * (float) cropPercentage / 100.f);
 		const int croppedCellSize = cellSize - 2 * cropSize;
 		Matrix** croppedCells = new Matrix* [numCells];
 		for (int i = 0; i < numCells; ++i)
@@ -866,7 +869,7 @@ namespace Imagery
 	void RemoveBorderArtifacts(Matrix** cells)
 	{
 		const float whiteThreshold = .25f;
-		const int d = 28 * BORDER_CROP_PERCENTAGE / 100.f;
+		const int d = (int) (28.f * BORDER_CROP_PERCENTAGE / 100.f);
 		const int n = 28 - 2 * d;
 		const float t = n * whiteThreshold;
 
@@ -914,7 +917,7 @@ namespace Imagery
 		{
 			const float sum = cells[i]->Sum();
 
-			emptyCells[i] = sum < emptinessThreshold * cells[i]->matrixSize * 255;
+			emptyCells[i] = sum < emptinessThreshold * (float) cells[i]->matrixSize * 255;
 		}
 
 		return emptyCells;
@@ -946,7 +949,7 @@ namespace Imagery
 		return resizedCells;
 	}
 
-// Offset pixels horizontally to center the digit. Discards pixels that go out of bounds. Offset can be negative.
+	// Offset pixels horizontally to center the digit. Discards pixels that go out of bounds. Offset can be negative.
 	void HorizontalOffset(Matrix& m, const int offset)
 	{
 		if (offset == 0)
@@ -1053,7 +1056,7 @@ namespace Imagery
 		return centeredCells;
 	}
 
-// Delete a pixel and recursively delete its neighbors if they are white.
+	// Delete a pixel and recursively delete its neighbors if they are white.
 	void RemoveContinuousPixels(Matrix& img, const int y, const int x) // NOLINT(*-no-recursion)
 	{
 		if (y < 0 || y >= img.rows || x < 0 || x >= img.cols)
@@ -1149,10 +1152,10 @@ namespace Imagery
 	void RotatePoint(const Point& pt, const Point& center, const float angle, Point& res)
 	{
 		const float radians = angle * (float) M_PI / 180.0f;
-		const float ptxf = static_cast<float>(pt.x);
-		const float ptyf = static_cast<float>(pt.y);
-		const float ctxf = static_cast<float>(center.x);
-		const float ctyf = static_cast<float>(center.y);
+		const float ptxf = (float) (pt.x);
+		const float ptyf = (float) (pt.y);
+		const float ctxf = (float) (center.x);
+		const float ctyf = (float) (center.y);
 		const int rotated_x = (int) ((ptxf - ctxf) * std::cos(radians) - (ptyf - ctyf) * std::sin(radians) + ctxf);
 		const int rotated_y = (int) ((ptxf - ctxf) * std::sin(radians) + (ptyf - ctyf) * std::cos(radians) + ctyf);
 
@@ -1178,10 +1181,9 @@ namespace Imagery
 
 	Point* ClosestEdgeFrom(const Square& s, const Point& pt)
 	{
-		Point* res = new Point();
+		Point* res = new Point(pt);
+
 		float minDist = Dist(s.topLeft, pt);
-		res->x = s.topLeft.x;
-		res->y = s.topLeft.y;
 		float dist = Dist(s.topRight, pt);
 		if (dist < minDist)
 		{
@@ -1202,28 +1204,33 @@ namespace Imagery
 			res->x = s.bottomRight.x;
 			res->y = s.bottomRight.y;
 		}
+
 		return res;
 	}
 
 	Square* Order(const Square& s, const int w, const int h)
 	{
 		Square* res = (Square*) malloc(sizeof(Square));
+
 		Point* topLeft = ClosestEdgeFrom(s, (Point) {0, 0});
 		Point* topRight = ClosestEdgeFrom(s, (Point) {w, 0});
 		Point* bottomLeft = ClosestEdgeFrom(s, (Point) {0, h});
 		Point* bottomRight = ClosestEdgeFrom(s, (Point) {w, h});
+
 		res->topLeft = *topLeft;
 		res->topRight = *topRight;
 		res->bottomLeft = *bottomLeft;
 		res->bottomRight = *bottomRight;
+
 		delete topLeft;
 		delete topRight;
 		delete bottomLeft;
 		delete bottomRight;
+
 		return res;
 	}
 
-// Function to extract the Sudoku region from the straightened image
+	// Extract the Sudoku region from the straightened image
 	Matrix*
 	ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, const float rotationAngle)
 	{
@@ -1279,25 +1286,326 @@ namespace Imagery
 			for (int i = 0; i < 9; i++)
 			{
 				const int iX = i * cellW;
-				Matrix* cell = new Matrix(cellH, cellW, 1);
+				res[j * 9 + i] = new Matrix(cellH, cellW, 1);
+				Matrix* cell = res[j * 9 + i];
 				for (int k = 0; k < cellW; k++)
 					for (int l = 0; l < cellH; l++)
 						cell->data[l * cell->cols + k] = matrix.data[(jY + l) * matrix.cols + iX + k];
-				res[j * 9 + i] = cell;
 			}
 		}
 
 		return res;
 	}
 
-	QPoint PointToQPoint(const Point& p)
+	// Solve a system of linear equations using Gaussian Elimination with Partial Pivoting
+	Matrix* GaussianElimination(const Matrix& a, const Matrix& b, const int n)
 	{
-		return {(int) p.x, (int) p.y};
+		// Check if the matrices are compatible
+		if (a.rows != n || a.cols != n || b.rows != n || b.cols != 1)
+			throw std::runtime_error("Invalid input");
+
+		Matrix* res = new Matrix(n, 1, 1);
+
+		int i, j, k;
+
+		// Forward Elimination with Partial Pivoting
+		for (i = 0; i < n; i++)
+		{
+			// Partial Pivoting: Find the maximum element in the pivot column
+			int pivotRow = i;
+			for (j = i + 1; j < n; j++)
+			{
+				if (std::abs(a.data[j * n + i]) > std::abs(a.data[pivotRow * n + i]))
+					pivotRow = j;
+			}
+
+			// Swap rows if needed
+			if (pivotRow != i)
+			{
+				for (k = 0; k < n; k++)
+					std::swap(a.data[i * n + k], a.data[pivotRow * n + k]);
+
+				std::swap(b.data[i], b.data[pivotRow]);
+			}
+
+			// Check for a zero pivot (avoid division by zero)
+			if (a.data[i * n + i] == 0.0)
+			{
+				// Handle zero pivot (potentially return an error code)
+				delete res;
+				throw std::runtime_error("Invalid input");
+			}
+
+			// Perform forward elimination with the non-zero pivot
+			for (j = i + 1; j < n; j++)
+			{
+				const float ratio = a.data[j * n + i] / a.data[i * n + i];
+				for (k = 0; k < n; k++)
+					a.data[j * n + k] -= ratio * a.data[i * n + k];
+
+				b.data[j] -= ratio * b.data[i];
+			}
+		}
+
+		// Back Substitution
+		for (i = n - 1; i >= 0; i--)
+		{
+			res->data[i] = b.data[i];
+			for (j = i + 1; j < n; j++)
+				res->data[i] -= a.data[i * n + j] * res->data[j];
+
+			res->data[i] /= a.data[i * n + i];
+		}
+
+		return res;
 	}
 
-	Point QPointToPoint(const QPoint& p)
+	// Compute the inverse of a 3x3 matrix by dividing the adjoint by the determinant
+	Matrix* Get3x3MatrixInverse(const Matrix& m)
 	{
-		return {(int) p.x(), (int) p.y()};
+		const float det = m.data[0] * (m.data[4] * m.data[8] - m.data[5] * m.data[7]) -
+						  m.data[1] * (m.data[3] * m.data[8] - m.data[5] * m.data[6]) +
+						  m.data[2] * (m.data[3] * m.data[7] - m.data[4] * m.data[6]);
+
+		Matrix* inv = new Matrix(3, 3, 1);
+		inv->data[0] = m.data[4] * m.data[8] - m.data[5] * m.data[7];
+		inv->data[1] = m.data[2] * m.data[7] - m.data[1] * m.data[8];
+		inv->data[2] = m.data[1] * m.data[5] - m.data[2] * m.data[4];
+		inv->data[3] = m.data[5] * m.data[6] - m.data[3] * m.data[8];
+		inv->data[4] = m.data[0] * m.data[8] - m.data[2] * m.data[6];
+		inv->data[5] = m.data[2] * m.data[3] - m.data[0] * m.data[5];
+		inv->data[6] = m.data[3] * m.data[7] - m.data[4] * m.data[6];
+		inv->data[7] = m.data[1] * m.data[6] - m.data[0] * m.data[7];
+		inv->data[8] = m.data[0] * m.data[4] - m.data[1] * m.data[3];
+
+		*inv *= 1.f / det;
+
+		return inv;
 	}
 
+	// Builds a perspective matrix that maps the sudoku edges to the desired edges
+	// Reference: https://github.com/opencv/opencv/blob/11b020b9f9e111bddd40bffe3b1759aa02d966f0/modules/imgproc/src/imgwarp.cpp#L3001
+	Matrix* BuildPerspectiveMatrix(const Square& sudokuEdges, const Square& desiredEdges)
+	{
+		const float tlx = (float) sudokuEdges.topLeft.x;
+		const float tly = (float) sudokuEdges.topLeft.y;
+		const float trx = (float) sudokuEdges.topRight.x;
+		const float try_ = (float) sudokuEdges.topRight.y;
+		const float blx = (float) sudokuEdges.bottomLeft.x;
+		const float bly = (float) sudokuEdges.bottomLeft.y;
+		const float brx = (float) sudokuEdges.bottomRight.x;
+		const float bry = (float) sudokuEdges.bottomRight.y;
+		const float dTlx = (float) desiredEdges.topLeft.x;
+		const float dTly = (float) desiredEdges.topLeft.y;
+		const float dTrx = (float) desiredEdges.topRight.x;
+		const float dTry = (float) desiredEdges.topRight.y;
+		const float dBlx = (float) desiredEdges.bottomLeft.x;
+		const float dBly = (float) desiredEdges.bottomLeft.y;
+		const float dBrx = (float) desiredEdges.bottomRight.x;
+		const float dBry = (float) desiredEdges.bottomRight.y;
+
+		Matrix* a = new Matrix(8, 8, 1);
+		Matrix* b = new Matrix(8, 1, 1);
+
+		// First row
+		a->data[0 * 8 + 0] = tlx;
+		a->data[0 * 8 + 1] = tly;
+		a->data[0 * 8 + 2] = 1;
+		a->data[0 * 8 + 3] = a->data[0 * 8 + 4] = a->data[0 * 8 + 5] = 0;
+		a->data[0 * 8 + 6] = -tlx * dTlx;
+		a->data[0 * 8 + 7] = -tly * dTlx;
+		b->data[0 * b->cols + 0] = dTlx;
+		// Second row
+		a->data[1 * 8 + 0] = trx;
+		a->data[1 * 8 + 1] = try_;
+		a->data[1 * 8 + 2] = 1;
+		a->data[1 * 8 + 3] = a->data[1 * 8 + 4] = a->data[1 * 8 + 5] = 0;
+		a->data[1 * 8 + 6] = -trx * dTrx;
+		a->data[1 * 8 + 7] = -try_ * dTrx;
+		b->data[1] = dTrx;
+		// Third row
+		a->data[2 * 8 + 0] = blx;
+		a->data[2 * 8 + 1] = bly;
+		a->data[2 * 8 + 2] = 1;
+		a->data[2 * 8 + 3] = a->data[2 * 8 + 4] = a->data[2 * 8 + 5] = 0;
+		a->data[2 * 8 + 6] = -blx * dBlx;
+		a->data[2 * 8 + 7] = -bly * dBlx;
+		b->data[2] = dBlx;
+		// Fourth row
+		a->data[3 * 8 + 0] = brx;
+		a->data[3 * 8 + 1] = bry;
+		a->data[3 * 8 + 2] = 1;
+		a->data[3 * 8 + 3] = a->data[3 * 8 + 4] = a->data[3 * 8 + 5] = 0;
+		a->data[3 * 8 + 6] = -brx * dBrx;
+		a->data[3 * 8 + 7] = -bry * dBrx;
+		b->data[3] = dBrx;
+		// Fifth row
+		a->data[4 * 8 + 0] = a->data[4 * 8 + 1] = a->data[4 * 8 + 2] = 0;
+		a->data[4 * 8 + 3] = tlx;
+		a->data[4 * 8 + 4] = tly;
+		a->data[4 * 8 + 5] = 1;
+		a->data[4 * 8 + 6] = -tlx * dTly;
+		a->data[4 * 8 + 7] = -tly * dTly;
+		b->data[4] = dTly;
+		// Sixth row
+		a->data[5 * 8 + 0] = a->data[5 * 8 + 1] = a->data[5 * 8 + 2] = 0;
+		a->data[5 * 8 + 3] = trx;
+		a->data[5 * 8 + 4] = try_;
+		a->data[5 * 8 + 5] = 1;
+		a->data[5 * 8 + 6] = -trx * dTry;
+		a->data[5 * 8 + 7] = -try_ * dTry;
+		b->data[5] = dTry;
+		// Seventh row
+		a->data[6 * 8 + 0] = a->data[6 * 8 + 1] = a->data[6 * 8 + 2] = 0;
+		a->data[6 * 8 + 3] = blx;
+		a->data[6 * 8 + 4] = bly;
+		a->data[6 * 8 + 5] = 1;
+		a->data[6 * 8 + 6] = -blx * dBly;
+		a->data[6 * 8 + 7] = -bly * dBly;
+		b->data[6] = dBly;
+		// Eighth row
+		a->data[7 * 8 + 0] = a->data[7 * 8 + 1] = a->data[7 * 8 + 2] = 0;
+		a->data[7 * 8 + 3] = brx;
+		a->data[7 * 8 + 4] = bry;
+		a->data[7 * 8 + 5] = 1;
+		a->data[7 * 8 + 6] = -brx * dBry;
+		a->data[7 * 8 + 7] = -bry * dBry;
+		b->data[7] = dBry;
+
+		// Solve the system of linear equations
+		Matrix* solution = GaussianElimination(*a, *b, 8);
+		Matrix* res = new Matrix(3, 3, 1);
+		std::copy(solution->data, solution->data + 8, res->data);
+		res->data[8] = 1;
+
+		delete a;
+		delete b;
+
+		return res;
+	}
+
+	QPoint RotateQPoint(const QPoint& point, const QPoint& center, const float angleDegrees)
+	{
+		const qreal angleRadians = qDegreesToRadians(angleDegrees);
+		const int rotatedX = qRound(center.x() + (point.x() - center.x()) * qCos(angleRadians) -
+									(point.y() - center.y()) * qSin(angleRadians));
+		const int rotatedY = qRound(center.y() + (point.x() - center.x()) * qSin(angleRadians) +
+									(point.y() - center.y()) * qCos(angleRadians));
+
+		return {rotatedX, rotatedY};
+	}
+
+	// Returns the index of the closest point to the target point
+	int ClosestPointIndex(const QPoint points[4], const QPoint& target)
+	{
+		int index = 0;
+		qreal minDist = QLineF(points[0], target).length();
+		for (int i = 1; i < 4; ++i)
+		{
+			const qreal dist = QLineF(points[i], target).length();
+			if (dist < minDist)
+			{
+				index = i;
+				minDist = dist;
+			}
+		}
+
+		return index;
+	}
+
+	Square GetDesiredEdges(const Square& sudokuEdges, const float angle, const int outputSize)
+	{
+		// Load points with qt
+		QPoint perspectivePoints[4];
+		QPoint correctedPoints[4];
+		perspectivePoints[0] = (QPoint) sudokuEdges.topLeft;
+		perspectivePoints[1] = (QPoint) sudokuEdges.topRight;
+		perspectivePoints[2] = (QPoint) sudokuEdges.bottomLeft;
+		perspectivePoints[3] = (QPoint) sudokuEdges.bottomRight;
+
+		// Find the center
+		QPoint center =
+				(perspectivePoints[0] + perspectivePoints[1] + perspectivePoints[2] + perspectivePoints[3]) / 4.0;
+
+		// Rotate all points around the center to make the sudoku edges parallel to the image edges
+		for (int i = 0; i < 4; i++)
+			correctedPoints[i] = RotateQPoint(perspectivePoints[i], center, angle);
+
+		// Find the closest point to each corner of the image
+		const int topLeftIndex = ClosestPointIndex(correctedPoints, {0, 0});
+		const int topRightIndex = ClosestPointIndex(correctedPoints, {outputSize, 0});
+		const int bottomLeftIndex = ClosestPointIndex(correctedPoints, {0, outputSize});
+		const int bottomRightIndex = ClosestPointIndex(correctedPoints, {outputSize, outputSize});
+
+		// Set the desired edges
+		correctedPoints[topLeftIndex] = {0, 0};
+		correctedPoints[topRightIndex] = {outputSize, 0};
+		correctedPoints[bottomLeftIndex] = {0, outputSize};
+		correctedPoints[bottomRightIndex] = {outputSize, outputSize};
+
+		// Return the desired edges
+		Square res;
+		res.topLeft = Point(correctedPoints[0]);
+		res.topRight = Point(correctedPoints[1]);
+		res.bottomLeft = Point(correctedPoints[2]);
+		res.bottomRight = Point(correctedPoints[3]);
+
+		return res;
+	}
+
+	// Apply the inverse perspective transformation to a point (ie. map the point from the output image to the input image)
+	Point ApplyInversePerspectiveTransformation(const Matrix& inversePerspectiveMatrix, const Point& p)
+	{
+		// Create the point in homogeneous coordinates
+		Matrix* homogeneousPoint = new Matrix(3, 1, 1);
+		homogeneousPoint->data[0] = (float) p.x;
+		homogeneousPoint->data[1] = (float) p.y;
+		homogeneousPoint->data[2] = 1.f;
+
+		// Apply the inverse perspective transformation
+		Matrix* out = new Matrix(3, 1, 1);
+		Matrix::Multiply(inversePerspectiveMatrix, *homogeneousPoint, *out);
+
+		// Divide by the last coordinate to get the real coordinates
+		Point res;
+		res.x = (int) (out->data[0] / out->data[2]);
+		res.y = (int) (out->data[1] / out->data[2]);
+
+		// Free memory
+		delete homogeneousPoint;
+		delete out;
+
+		return res;
+	}
+
+	// Apply the perspective transformation to an image
+	Matrix*
+	PerspectiveTransform(const Matrix& img, const Square& sudokuEdges, const Square& desiredEdges, const int squareSize)
+	{
+		// Compute perspective matrices
+		Matrix* perspectiveMatrix = BuildPerspectiveMatrix(sudokuEdges, desiredEdges);
+		Matrix* inversePerspectiveMatrix = Get3x3MatrixInverse(*perspectiveMatrix);
+
+		// Apply the perspective transformation
+		Matrix* res = new Matrix(squareSize, squareSize, 1);
+		for (int y = 0; y < res->rows; y++)
+		{
+			for (int x = 0; x < res->cols; x++)
+			{
+				Point p = {x, y};
+				Point originalPoint = ApplyInversePerspectiveTransformation(*inversePerspectiveMatrix, p);
+				if (originalPoint.x < 0 || originalPoint.y < 0 || originalPoint.x >= img.cols ||
+					originalPoint.y >= img.rows)
+					res->data[y * res->cols + x] = 0;
+				else
+					res->data[y * res->cols + x] = img.data[originalPoint.y * img.cols + originalPoint.x];
+			}
+		}
+
+		// Free memory
+		delete perspectiveMatrix;
+		delete inversePerspectiveMatrix;
+
+		return res;
+	}
 }

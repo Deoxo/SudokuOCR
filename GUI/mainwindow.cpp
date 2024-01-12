@@ -30,6 +30,7 @@ MainWindow::MainWindow(QWidget* parent)
 	connect(core, &Core::StepCompleted, this, &MainWindow::OnStepCompleted);
 	connect(core, &Core::OnVerticesDetected, this, &MainWindow::OnVerticesDetected);
 	connect(core, &Core::OnDigitsRecognized, this, &MainWindow::OnDigitsRecognized);
+	connect(core, &Core::OnDigitsIsolated, this, &MainWindow::OnDigitsIsolated);
 
 	QGridLayout * gridLayout = ui->gridLayout_4_;
 	for (int row = 1; row < 10; ++row)
@@ -122,15 +123,14 @@ void MainWindow::OnVerticesDetected(QPoint* vertices)
 
 void MainWindow::OnShapeValidated()
 {
-	setWindowTitle("SudokuOCR - Digits detection");
-	ui->imgDisplay_4->SetImage(imgPath);
-	ui->stackedWidget->setCurrentIndex(4);
 	QPoint* vertices = ui->ShapeDefiner_3->GetVertices();
-	detectionInfo->bestSquare->topRight = Imagery::QPointToPoint(vertices[0]);
-	detectionInfo->bestSquare->bottomRight = Imagery::QPointToPoint(vertices[1]);
-	detectionInfo->bestSquare->bottomLeft = Imagery::QPointToPoint(vertices[2]);
-	detectionInfo->bestSquare->topLeft = Imagery::QPointToPoint(vertices[3]);
+	detectionInfo->bestSquare->topRight = Point(vertices[0]);
+	detectionInfo->bestSquare->bottomRight = Point(vertices[1]);
+	detectionInfo->bestSquare->bottomLeft = Point(vertices[2]);
+	detectionInfo->bestSquare->topLeft = Point(vertices[3]);
 	core->DigitDetection(detectionInfo, savePath);
+
+	delete vertices;
 }
 
 void MainWindow::OnDigitsRecognized(const Matrix* digits)
@@ -141,6 +141,7 @@ void MainWindow::OnDigitsRecognized(const Matrix* digits)
 		spinBoxes[i]->setValue((int) digits->data[i]);
 		connect(spinBoxes[i], &QSpinBox::valueChanged, this, &MainWindow::OnDigitModified);
 	}
+	delete digits;
 
 	ui->validateButton_4->setEnabled(true);
 	OnDigitModified();
@@ -172,4 +173,11 @@ void MainWindow::OnAllDigitsValidated()
 	core->SaveSudokuImage(*result, 600, savePath + "result.png");
 	ui->imgDisplay_5->SetImage(savePath + "result.png");
 	ui->stackedWidget->setCurrentIndex(5);
+}
+
+void MainWindow::OnDigitsIsolated(const QString& isolatedDigitsPath)
+{
+	setWindowTitle("SudokuOCR - Digits detection");
+	ui->imgDisplay_4->SetImage(isolatedDigitsPath);
+	ui->stackedWidget->setCurrentIndex(4);
 }

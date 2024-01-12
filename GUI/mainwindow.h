@@ -48,6 +48,8 @@ public slots:
 
 	void OnAllDigitsValidated();
 
+	void OnDigitsIsolated(const QString& isolatedDigitsPath);
+
 private:
 	Ui::MainWindow* ui;
 	QString imgPath;

@@ -28,6 +28,8 @@ int GUI(int argc, char** argv)
 	return QApplication::exec();
 }
 
+
+// Todo: Make a window for borders removal to not stop if there is one black pixel
 int main(int argc, char** argv)
 {
 	return GUI(argc, argv);

@@ -250,6 +250,7 @@ void Matrix::Print() const
 
 void Matrix::IntPrint() const
 {
+	printf("Matrix: %ix%i\n", rows, cols);
 	for (int i = 0; i < rows; i++)
 	{
 		for (int j = 0; j < cols; j++)

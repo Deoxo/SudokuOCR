@@ -18,7 +18,7 @@ public:
 
 	void StepCompletedWrapper(const Matrix& img, const QString& stepName, const QString& savePath) const;
 
-	void SaveSudokuImage(const Matrix& sudokuMatrix, int size, const QString& filePath);
+	static void SaveSudokuImage(const Matrix& sudokuMatrix, int size, const QString& filePath);
 
 signals:
 
@@ -27,6 +27,8 @@ signals:
 	void OnVerticesDetected(QPoint* vertices) const;
 
 	void OnDigitsRecognized(const Matrix* digits) const;
+
+	void OnDigitsIsolated(const QString& isolatedDigitsPath) const;
 };
 
 #endif // CORE_H

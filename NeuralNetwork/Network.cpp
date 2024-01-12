@@ -13,6 +13,7 @@
 #if MULTITHREAD
 
 #include <pthread.h>
+
 #endif
 
 void* NeuralNetwork::BackpropagationThread(void* arg)
@@ -245,7 +246,7 @@ void Custom3(const int saveNeuralNetwork)
 	const float dropoutRate = .4f;
 	const float learningRate = 1.f;
 
-	Matrix*** MNIST = LoadCustom3("./datasets/custom3", numData, 0);
+	Matrix*** MNIST = LoadCustom3("../datasets/custom3", numData, 0);
 	const Matrix** inputs = (const Matrix**) MNIST[0];
 	const Matrix** outputs = (const Matrix**) MNIST[1];
 

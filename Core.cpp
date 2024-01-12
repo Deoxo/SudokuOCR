@@ -9,6 +9,18 @@
 Core::Core()
 = default;
 
+void DrawLines(const QString& imagePath, const QString& savePath, Line* cartesianLines, const int numLines)
+{
+	QImage image(imagePath);
+	QPainter painter(&image);
+	painter.setPen(QPen(Qt::red, 2));
+	for (int i = 0; i < numLines; ++i)
+	{
+		painter.drawLine(cartesianLines[i].x1, cartesianLines[i].y1, cartesianLines[i].x2, cartesianLines[i].y2);
+	}
+	image.save(savePath + "/7-lines.png");
+}
+
 DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& savePath) const
 {
 	// Convert the image to grayscale and stores it in a matrix
@@ -36,7 +48,7 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	// Blur
 	Matrix* blurred = Matrix::CreateSameSize(*m);
 	Imagery::Blur(*eroded0, *blurred, 5);
-	StepCompletedWrapper(*blurred, "1.3-blurred", savePath);
+	StepCompletedWrapper(*blurred, "2-blurred", savePath);
 
 	// Binarize
 	Matrix* binarized = Matrix::CreateSameSize(*m);
@@ -62,57 +74,46 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 		clock_t end = clock();
 		printf("Adaptive threshold took %f seconds\n", (double) (end - start) / CLOCKS_PER_SEC);
 	}
-	StepCompletedWrapper(*binarized, "2-binarized", savePath);
+	StepCompletedWrapper(*binarized, "3-binarized", savePath);
 
 	// Invert image
 	Matrix* inversed = Matrix::CreateSameSize(*m);
 	Imagery::BitwiseNot(*binarized, *inversed);
-	StepCompletedWrapper(*inversed, "3-inversed", savePath);
+	StepCompletedWrapper(*inversed, "4-inversed", savePath);
 
 	// Dilate
 	Matrix* dilated = Matrix::CreateSameSize(*m);
 	Imagery::Dilate(*inversed, *dilated, DELATE_KERNEL_SIZE);
-	StepCompletedWrapper(*dilated, "4.0-dilated", savePath);
+	StepCompletedWrapper(*dilated, "5.0-dilated", savePath);
 
 	Matrix* e = Matrix::CreateSameSize(*m);
 	if (dispersion >= 500)
 		Imagery::Erode(*dilated, *e, DELATE_KERNEL_SIZE);
 	else
 		dilated->CopyValuesTo(*e);
-	StepCompletedWrapper(*e, "4.1-eroded", savePath);
+	StepCompletedWrapper(*e, "5.2-eroded", savePath);
 
 	// Canny
-	//Matrix* canny = MatCreateSameSize(dilated);x
-	//Canny(dilated, canny, 50, 150);
+	Matrix* canny = Matrix::CreateSameSize(*dilated);
+	Imagery::Canny(*dilated, *canny, 50, 150);
+	StepCompletedWrapper(*canny, "6-canny", savePath);
 
 	// Get edges
-	Matrix* sobelEdges = Matrix::CreateSameSize(*m);
-	Imagery::SobelEdgeDetector(*dilated, *sobelEdges);
-	StepCompletedWrapper(*sobelEdges, "5-sobelEdges", savePath);
-
-	qDebug() << "delete";
-	delete bilaterallyFiltered;
-	delete dilated0;
-	delete eroded0;
-	delete blurred;
-	delete binarized;
-	delete inversed;
-	delete sobelEdges;
-	//MatFree(dilated);
-	//MatFree(canny);
-
-	qDebug() << "end";
+	//Matrix* sobelEdges = Matrix::CreateSameSize(*m);
+	//Imagery::SobelEdgeDetector(*dilated, *sobelEdges);
+	//StepCompletedWrapper(*sobelEdges, "5-sobelEdges", savePath);
 
 	const int sw = dilated->cols, sh = dilated->rows;
 
 	// Get lines
 	int numLines = 0;
-	HoughLine* lines = GridDetection::FindLines(*dilated, &numLines);
+	HoughLine* lines = GridDetection::FindLines(*canny, &numLines);
 	const float angle = Imagery::ComputeImageAngle(lines, numLines);
 	printf("Angle: %f\n", angle);
 
 	// Convert to cartesian lines
 	Line* cartesianLines = GridDetection::HoughLinesToCartesianLines(lines, numLines, sw, sh);
+	DrawLines(imagePath, savePath, cartesianLines, numLines);
 
 	//printf("Angle: %s%i%s\n", MAGENTA, ComputeImageAngle(lines, numLines), RESET);
 
@@ -127,9 +128,10 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 
 	// Get the borders of the Sudoku from the squares
 	clock_t start2 = clock();
-	Square* bestSquare = GridDetection::FindBestSquare(squares, numSquares, *dilated);
-	if (bestSquare == nullptr)
+	Square* bestSquarePt = GridDetection::FindBestSquare(squares, numSquares, *dilated);
+	if (bestSquarePt == nullptr)
 		throw std::runtime_error("No square found");
+	Square* bestSquare = new Square(*bestSquarePt); // Copy the square as the original will be freed
 	clock_t end2 = clock();
 
 	if (VERBOSE)
@@ -147,10 +149,10 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 		printf("Top left: ");
 		Imagery::PrintPointScreenCoordinates(&bestSquare->topLeft, sw, sh, sw, sh);
 	}
-    QPoint* vertices = new QPoint[] {Imagery::PointToQPoint(bestSquare->topRight),
-                         Imagery::PointToQPoint(bestSquare->bottomRight),
-                         Imagery::PointToQPoint(bestSquare->bottomLeft),
-                         Imagery::PointToQPoint(bestSquare->topLeft)};
+    QPoint* vertices = new QPoint[] {(QPoint)bestSquare->topRight,
+                         (QPoint)bestSquare->bottomRight,
+                         (QPoint)bestSquare->bottomLeft,
+                         (QPoint)bestSquare->topLeft};
 	emit OnVerticesDetected(vertices);
 
 	DetectionInfo* detectionInfo = new DetectionInfo();
@@ -160,29 +162,47 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	detectionInfo->angle = angle;
 
 	// Free memory
+	qDebug() << "delete";
 	delete img;
 	delete m;
+	delete bilaterallyFiltered;
+	delete dilated0;
+	delete eroded0;
+	delete blurred;
+	delete binarized;
+	delete inversed;
 	delete dilated;
+	//delete sobelEdges;
+	delete canny;
 	delete[] lines;
 	delete[] cartesianLines;
-	delete intersections;
-	delete squares;
+	ListDeepFree(intersections);
+	ListDeepFree(squares);
 
 	return detectionInfo;
 }
-
 void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath) const
 {
-	Matrix* rotated = Imagery::Rotation(*detectionInfo->e, *detectionInfo->bestSquare, -detectionInfo->angle);
-	rotated->SaveAsImg(savePath, "6-rotated");
-	Matrix* cropped = Imagery::ExtractSudokuFromStraightImg(*rotated, *detectionInfo->bestSquare, -detectionInfo->angle);
-	cropped->SaveAsImg(savePath, "7-cropped");
-	Imagery::RemoveLines(*cropped);
-	Matrix** cells = Imagery::Split(*cropped);
+	const int sw = detectionInfo->e->cols, sh = detectionInfo->e->rows;
+	const int squareSize = std::min(sw, sh);
+	Square desiredSquare = Imagery::GetDesiredEdges(*detectionInfo->bestSquare, -detectionInfo->angle, squareSize - 1);
+
+	// Extract the Sudoku from the image
+	Matrix* perspective = Imagery::PerspectiveTransform(*detectionInfo->e, *detectionInfo->bestSquare,
+														desiredSquare, squareSize);
+	perspective->SaveAsImg(savePath, "8-perspective");
+	Imagery::RemoveLines(*perspective);
+	perspective->SaveAsImg(savePath, "9-removedLines");
+	emit OnDigitsIsolated(savePath + "/9-removedLines");
+
+	// Split the Sudoku into cells
+	Matrix** cells = Imagery::Split(*perspective);
 	Matrix** borderlessCells = Imagery::CropBorders((const Matrix**) cells, BORDER_CROP_PERCENTAGE);
 	Matrix** resizedCells = Imagery::ResizeCellsTo28x28((const Matrix**) borderlessCells);
 	int* emptyCells = Imagery::GetEmptyCells((const Matrix**) resizedCells, EMPTY_CELL_THRESHOLD);
 	Matrix** centeredCells = Imagery::CenterCells((const Matrix**) resizedCells, emptyCells);
+
+	// Digit recognition
 	Matrix* digits = new Matrix(9, 9, 1);
 	NeuralNetwork* nn = NeuralNetwork::LoadFromFile("./nn3.bin");
 	for (int i = 0; i < 81; i++)
@@ -200,15 +220,19 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	}
 
 	// Free memory
+	delete perspective;
 	delete nn;
 	for (int i = 0; i < 81; ++i)
 	{
 		delete cells[i];
 		delete borderlessCells[i];
+		delete centeredCells[i];
+		delete resizedCells[i];
 	}
-	delete cells;
-	delete borderlessCells;
-	delete resizedCells;
+	delete[] cells;
+	delete[] borderlessCells;
+	delete[] centeredCells;
+	delete[] resizedCells;
 	delete emptyCells;
 
 	emit OnDigitsRecognized(digits);

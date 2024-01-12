@@ -28,6 +28,35 @@ typedef struct Point
 {
 	int x;
 	int y;
+
+	Point(int x, int y)
+	{
+		this->x = x;
+		this->y = y;
+	}
+
+	Point()
+	{
+		x = 0;
+		y = 0;
+	}
+
+	Point(const Point& p)
+	{
+		x = p.x;
+		y = p.y;
+	}
+
+	explicit Point(QPoint p)
+	{
+		x = p.x();
+		y = p.y();
+	}
+
+	explicit operator QPoint() const
+	{
+		return {x, y};
+	}
 } Point;
 
 typedef struct Contour
@@ -134,7 +163,7 @@ namespace Imagery
 
 	Matrix* Rotation(const Matrix& matrix, const Square& s, double degree);
 
-	void RotatePoint(const Point* pt, const Point* center, float angle, Point* res);
+	void RotatePoint(const Point& pt, const Point& center, float angle, Point& res);
 
 	Square* RotateSquare(const Square* s, const Point* center, float angle);
 
@@ -150,9 +179,12 @@ namespace Imagery
 
 	Matrix** Split(const Matrix& matrix);
 
-	QPoint PointToQPoint(const Point& p);
+	Matrix* BuildPerspectiveMatrix(const Square& sudokuEdges, const Square& desiredEdges);
 
-	Point QPointToPoint(const QPoint& p);
+	Square GetDesiredEdges(const Square& sudokuEdges, float angle, int outputSize);
+
+	Matrix*
+	PerspectiveTransform(const Matrix& img, const Square& sudokuEdges, const Square& desiredEdges, int squareSize);
 }
 
 #endif //SUDOKUOCR_IMAGERY_H
