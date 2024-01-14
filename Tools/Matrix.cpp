@@ -835,3 +835,14 @@ void Matrix::WriteToBinaryFile(FILE* file) const
 	mm->offset = off;
 	mm->data += off;
 }
+
+float Matrix::Max()
+{
+	float max = -INFINITY;
+	for (int i = 0; i < matrixSize; i++)
+	{
+		if (data[i] > max)
+			max = data[i];
+	}
+	return max;
+}

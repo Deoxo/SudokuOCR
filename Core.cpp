@@ -9,15 +9,24 @@
 Core::Core()
 = default;
 
-void DrawLines(const QString& imagePath, const QString& savePath, Line* cartesianLines, const int numLines)
+void DrawLines(const QString& imagePath, const QString& savePath, Line* cartesianLines, const int numLines,
+			   HoughLine* lines)
 {
 	QImage image(imagePath);
+	image.convertTo(QImage::Format_RGB32);
 	QPainter painter(&image);
 	painter.setPen(QPen(Qt::red, 2));
 	for (int i = 0; i < numLines; ++i)
 	{
-		painter.drawLine(cartesianLines[i].x1, cartesianLines[i].y1, cartesianLines[i].x2, cartesianLines[i].y2);
-	}
+		const float angle = lines[i].theta * 180 / M_PI;
+		if (angle <= 10)
+			painter.setPen(QPen(Qt::blue, 2));
+		else if (angle <= 90)
+			painter.setPen(QPen(Qt::red, 2));
+		else
+			painter.setPen(QPen(Qt::green, 2));
+		painter.drawLine(cartesianLines[i].x1, cartesianLines[i].y1, cartesianLines[i].x2, cartesianLines[i].y2);	}
+
 	image.save(savePath + "/7-lines.png");
 }
 
@@ -96,7 +105,11 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	// Canny
 	Matrix* canny = Matrix::CreateSameSize(*dilated);
 	Imagery::Canny(*dilated, *canny, 50, 150);
-	StepCompletedWrapper(*canny, "6-canny", savePath);
+	StepCompletedWrapper(*canny, "6.0-canny", savePath);
+
+	Square* bestSquare = new Square();
+	Matrix* mainPixels = Imagery::ExtractBiggestPixelGroupAndCorners(*canny, 3, bestSquare);
+	StepCompletedWrapper(*mainPixels, "6.1-mainPixels", savePath);
 
 	// Get edges
 	//Matrix* sobelEdges = Matrix::CreateSameSize(*m);
@@ -107,52 +120,22 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 
 	// Get lines
 	int numLines = 0;
-	HoughLine* lines = GridDetection::FindLines(*canny, &numLines);
-	const float angle = Imagery::ComputeImageAngle(lines, numLines);
-	printf("Angle: %f\n", angle);
+	HoughLine* lines = GridDetection::FindLines(*mainPixels, &numLines);
 
 	// Convert to cartesian lines
 	Line* cartesianLines = GridDetection::HoughLinesToCartesianLines(lines, numLines, sw, sh);
-	DrawLines(imagePath, savePath, cartesianLines, numLines);
+	DrawLines(savePath + "/6.1-mainPixels.png", savePath, cartesianLines, numLines, lines);
+	qDebug() << "7-lines";
 
-	//printf("Angle: %s%i%s\n", MAGENTA, ComputeImageAngle(lines, numLines), RESET);
+	const float angle = Imagery::ComputeImageAngle(lines, numLines);
+	printf("Angle: %f\n", angle);
 
-	// Get intersections
-	List* intersections = GridDetection::FindIntersections2(cartesianLines, numLines, sw, sh);
-
-	// Get squares
-	int numSquares = 0;
-	List* squares = GridDetection::GetSquares2(intersections, SQUARES_EDGE_DIFF_TOL, &numSquares, numLines);
-	if (VERBOSE)
-		printf("Num squares: %i\n", numSquares);
-
-	// Get the borders of the Sudoku from the squares
-	clock_t start2 = clock();
-	Square* bestSquarePt = GridDetection::FindBestSquare(squares, numSquares, *dilated);
-	if (bestSquarePt == nullptr)
-		throw std::runtime_error("No square found");
-	Square* bestSquare = new Square(*bestSquarePt); // Copy the square as the original will be freed
-	clock_t end2 = clock();
-
-	if (VERBOSE)
-	{
-		printf("Find best square took %f seconds\n", (double) (end2 - start2) / CLOCKS_PER_SEC);
-		printf("Image dimensions: %ix%i\n", sw, sh);
-		// print four edges
-		printf("Largest square:\n");
-		printf("Top right: ");
-		Imagery::PrintPointScreenCoordinates(&bestSquare->topRight, sw, sh, sw, sh);
-		printf("Bottom right: ");
-		Imagery::PrintPointScreenCoordinates(&bestSquare->bottomRight, sw, sh, sw, sh);
-		printf("Bottom left: ");
-		Imagery::PrintPointScreenCoordinates(&bestSquare->bottomLeft, sw, sh, sw, sh);
-		printf("Top left: ");
-		Imagery::PrintPointScreenCoordinates(&bestSquare->topLeft, sw, sh, sw, sh);
-	}
-    QPoint* vertices = new QPoint[] {(QPoint)bestSquare->topRight,
-                         (QPoint)bestSquare->bottomRight,
-                         (QPoint)bestSquare->bottomLeft,
-                         (QPoint)bestSquare->topLeft};
+    QPoint* vertices = new QPoint[] {
+						(QPoint)bestSquare->topLeft,
+						(QPoint)bestSquare->bottomRight,
+						(QPoint)bestSquare->topRight,
+                         (QPoint)bestSquare->bottomLeft
+                         };
 	emit OnVerticesDetected(vertices);
 
 	DetectionInfo* detectionInfo = new DetectionInfo();
@@ -162,7 +145,6 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	detectionInfo->angle = angle;
 
 	// Free memory
-	qDebug() << "delete";
 	delete img;
 	delete m;
 	delete bilaterallyFiltered;
@@ -174,25 +156,28 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	delete dilated;
 	//delete sobelEdges;
 	delete canny;
+	delete mainPixels;
 	delete[] lines;
 	delete[] cartesianLines;
-	ListDeepFree(intersections);
-	ListDeepFree(squares);
 
 	return detectionInfo;
 }
+
 void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath) const
 {
 	const int sw = detectionInfo->e->cols, sh = detectionInfo->e->rows;
 	const int squareSize = std::min(sw, sh);
 	Square desiredSquare = Imagery::GetDesiredEdges(*detectionInfo->bestSquare, -detectionInfo->angle, squareSize - 1);
+	qDebug() << "Desired square";
 
 	// Extract the Sudoku from the image
 	Matrix* perspective = Imagery::PerspectiveTransform(*detectionInfo->e, *detectionInfo->bestSquare,
 														desiredSquare, squareSize);
 	perspective->SaveAsImg(savePath, "8-perspective");
+	qDebug() << "8-perspective";
 	Imagery::RemoveLines(*perspective);
 	perspective->SaveAsImg(savePath, "9-removedLines");
+	qDebug() << "9-removedLines";
 	emit OnDigitsIsolated(savePath + "/9-removedLines");
 
 	// Split the Sudoku into cells
@@ -212,7 +197,7 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 			digits->data[i] = 0;
 			continue;
 		}
-		const QString cellName = "9-" + QString::number(i / 10) + QString::number(i % 10) + "";
+		const QString cellName = "10-" + QString::number(i / 10) + QString::number(i % 10) + "";
 		centeredCells[i]->SaveAsImg(savePath, cellName);
 
 		*centeredCells[i] *= 1.f / 255.f;

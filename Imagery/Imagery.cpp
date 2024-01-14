@@ -17,7 +17,6 @@ namespace Imagery
 		if (image.isNull())
 			throw std::runtime_error("Failed to load image at " + imagePath.toStdString());
 
-
 		int rows = image.height();
 		int cols = image.width();
 		int dims = 3; // Three color channels (RGB)
@@ -526,9 +525,15 @@ namespace Imagery
 			if (lines[i].theta == INFINITY || lines[i].theta < 0 || lines[i].theta > 180)
 				continue;
 			angles[i] = (int) (lines[i].theta * 180 / M_PI); // convert to degrees
-			angles[i] %= 90; // keep only the angle in [0, 90[1
-			if (angles[i] == 0) // 0 angles mess up the algorithm, so we set them to 90
-				angles[i] = 90;
+			if (angles[i] > 90)
+			{
+				if (angles[i] > 135)
+					angles[i] = -(90 - angles[i] % 90);
+				else
+					angles[i] = angles[i] % 90;
+			}
+			else if (angles[i] > 45)
+				angles[i] = -(90 - angles[i]);
 			avg += (float) angles[i];
 		}
 
@@ -541,29 +546,8 @@ namespace Imagery
 			}
 		avg2 /= avg2n;
 
-		//printf("avg: %f\n", avg);
-		//printf("avg2: %f\n", avg2);
-
 		delete[] angles;
 		return avg2 > 45 ? -(90 - avg2) : avg2;
-
-		/*float* clusterCenters = kMeansClustersCenter(angles, numLines);
-		printf("clusters angles: %f %f\n", clusterCenters[0], clusterCenters[1]);
-
-		int angle1 = abs((int) clusterCenters[0] - 90);
-		int angle2 = abs((int) clusterCenters[1] - 90);
-		int angle3 = abs((int) clusterCenters[0] - 0);
-		int angle4 = abs((int) clusterCenters[1] - 0);
-		// take min angle
-		int rotationAngle = angle1;
-		if (angle2 < rotationAngle)
-			rotationAngle = angle2;
-		if (angle3 < rotationAngle)
-			rotationAngle = angle3;
-		if (angle4 < rotationAngle)
-			rotationAngle = angle4;
-
-		return rotationAngle;*/
 	}
 
 	void BilateralFilter(const Matrix& input, Matrix& output, const int diameter, const float sigma_color,
@@ -1607,5 +1591,114 @@ namespace Imagery
 		delete inversePerspectiveMatrix;
 
 		return res;
+	}
+
+	void FloodFill(Matrix& img, QPoint pos, const int halfWindowSize, std::list<QPoint>& group, const float target)
+	{
+		if (pos.x() < 0 || pos.x() >= img.cols || pos.y() < 0 || pos.y() >= img.rows)
+			return;
+		if (img.data[pos.y() * img.cols + pos.x()] != target)
+			return;
+		img.data[pos.y() * img.cols + pos.x()] = 0;
+		group.push_back(pos);
+
+		for (int y = -halfWindowSize; y <= halfWindowSize; ++y)
+		{
+			for (int x = -halfWindowSize; x <= halfWindowSize; ++x)
+				FloodFill(img, QPoint(pos.x() + x, pos.y() + y), halfWindowSize, group, target);
+		}
+	}
+
+	[[nodiscard]] float SquareDist(const QPoint& a, const QPoint& b)
+	{
+		const float dx = (float) (a.x() - b.x());
+		const float dy = (float) (a.y() - b.y());
+
+		return dx * dx + dy * dy;
+	}
+
+	QPoint GetFarthestPointFromAnchors(std::list<QPoint>& anchors, const std::list<QPoint>& pts)
+	{
+		int maxIndex = 0;
+		float maxDistSum = 0;
+		int i = 0;
+		for (const QPoint& p : pts)
+		{
+			float distsSum = 0;
+			for (const QPoint& anchor : anchors)
+				distsSum += SquareDist(p, anchor);
+			if (distsSum >= maxDistSum)
+			{
+				maxDistSum = distsSum;
+				maxIndex = i;
+			}
+			i++;
+		}
+
+		return *std::next(pts.begin(), maxIndex);
+	}
+
+	Matrix*
+	ExtractBiggestPixelGroupAndCorners(const Matrix& img, const int halfWindowSize, Square* corners, const float target)
+	{
+		Matrix* res = Matrix::CreateSameSize(img);
+		img.CopyValuesTo(*res);
+
+		// Find all pixel groups
+		std::list<std::list<QPoint>> pixelGroups;
+		for (int y = 0; y < res->rows; ++y)
+		{
+			for (int x = 0; x < res->cols; ++x)
+			{
+				if (res->data[y * res->cols + x] == 255)
+				{
+					std::list<QPoint> group;
+					Imagery::FloodFill(*res, QPoint(x, y), halfWindowSize, group, target);
+					pixelGroups.push_back(group);
+				}
+			}
+		}
+
+		// Group with most elements
+		std::list<QPoint>& mainGroup = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
+														 [](const std::list<QPoint>& a, const std::list<QPoint>& b)
+														 {
+															 return a.size() < b.size();
+														 });
+
+		// Write the main group to the result matrix
+		for (const QPoint& pixel : mainGroup)
+			res->data[pixel.y() * res->cols + pixel.x()] = target;
+
+		// Find the corners
+		std::list<QPoint> aurelCorners = AurelCornerDetection(mainGroup);
+
+		// Write the corners to the result square
+		corners->topLeft = Point(*std::next(aurelCorners.begin(), 0));
+		corners->topRight = Point(*std::next(aurelCorners.begin(), 1));
+		corners->bottomLeft = Point(*std::next(aurelCorners.begin(), 2));
+		corners->bottomRight = Point(*std::next(aurelCorners.begin(), 3));
+
+		return res;
+	}
+
+	std::list<QPoint> AurelCornerDetection(const std::list<QPoint>& points)
+	{
+		std::list<QPoint> anchors = {points.front()};
+
+		QPoint corner1 = GetFarthestPointFromAnchors(anchors, points);
+		anchors.remove(anchors.front());
+		anchors.push_back(corner1);
+
+		QPoint corner2 = GetFarthestPointFromAnchors(anchors, points);
+		anchors.push_back(corner2);
+
+		QPoint corner3 = GetFarthestPointFromAnchors(anchors, points);
+		anchors.push_back(corner3);
+		
+		QPoint corner4 = GetFarthestPointFromAnchors(anchors, points);
+		anchors.push_back(corner4);
+
+		return anchors;
 	}
 }

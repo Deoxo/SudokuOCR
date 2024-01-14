@@ -170,7 +170,7 @@ void MainWindow::OnAllDigitsValidated()
 		board->data[i] = (float) spinBoxes[i]->value();
 
 	Matrix* result = Solver::Solve(*board);
-	core->SaveSudokuImage(*result, 600, savePath + "result.png");
+	Core::SaveSudokuImage(*result, 600, savePath + "result.png");
 	ui->imgDisplay_5->SetImage(savePath + "result.png");
 	ui->stackedWidget->setCurrentIndex(5);
 }

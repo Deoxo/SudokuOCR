@@ -44,8 +44,8 @@
 #define MIN_LINES_RHO_DIST 40
 #define MIN_LINES_THETA_DIST 1.04719758033f // 60 degrees
 
-#define MIN_LINES 150
-#define MAX_LINES 200
+#define MIN_LINES 20
+#define MAX_LINES 30
 
 #define MIN_INTERSECTION_DIST 30
 

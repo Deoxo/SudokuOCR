@@ -81,6 +81,8 @@ public:
 
 	Matrix& operator*=(float scalar);
 
+	[[nodiscard]] float Max();
+
 private:
 	int offset;
 };

@@ -9,6 +9,7 @@
 #include <QPointF>
 #include "Tools/Matrix.h"
 #include "../Tools/List.h"
+#include <list>
 
 typedef struct HoughLine
 {
@@ -185,6 +186,13 @@ namespace Imagery
 
 	Matrix*
 	PerspectiveTransform(const Matrix& img, const Square& sudokuEdges, const Square& desiredEdges, int squareSize);
+
+	void FloodFill(Matrix& img, QPoint pos, int halfWindowSize, std::list<QPoint>& group, float target);
+
+	Matrix*
+	ExtractBiggestPixelGroupAndCorners(const Matrix& img, int halfWindowSize, Square* corners, float target = 255);
+
+	std::list<QPoint> AurelCornerDetection(const std::list<QPoint>& points);
 }
 
 #endif //SUDOKUOCR_IMAGERY_H
