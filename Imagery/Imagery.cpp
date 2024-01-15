@@ -894,9 +894,9 @@ namespace Imagery
 		}
 	}
 
-	int* GetEmptyCells(const Matrix** cells, const float emptinessThreshold)
+	bool* GetEmptyCells(const Matrix** cells, const float emptinessThreshold)
 	{
-		int* emptyCells = new int[81];
+		bool* emptyCells = new bool[81];
 		for (int i = 0; i < 81; ++i)
 		{
 			const float sum = cells[i]->Sum();
@@ -994,7 +994,7 @@ namespace Imagery
 		}
 	}
 
-	Matrix** CenterCells(const Matrix** cells, const int* emptyCells)
+	Matrix** CenterCells(const Matrix** cells, const bool* emptyCells)
 	{
 		Matrix** centeredCells = new Matrix* [81];
 		for (int i = 0; i < 81; ++i)
@@ -1609,12 +1609,12 @@ namespace Imagery
 		}
 	}
 
-	[[nodiscard]] float SquareDist(const QPoint& a, const QPoint& b)
+	[[nodiscard]] float Dist(const QPoint& a, const QPoint& b)
 	{
 		const float dx = (float) (a.x() - b.x());
 		const float dy = (float) (a.y() - b.y());
 
-		return dx * dx + dy * dy;
+		return std::sqrt(dx * dx + dy * dy);
 	}
 
 	QPoint GetFarthestPointFromAnchors(std::list<QPoint>& anchors, const std::list<QPoint>& pts)
@@ -1626,7 +1626,7 @@ namespace Imagery
 		{
 			float distsSum = 0;
 			for (const QPoint& anchor : anchors)
-				distsSum += SquareDist(p, anchor);
+				distsSum += Dist(p, anchor);
 			if (distsSum >= maxDistSum)
 			{
 				maxDistSum = distsSum;
@@ -1682,21 +1682,25 @@ namespace Imagery
 		return res;
 	}
 
-	std::list<QPoint> AurelCornerDetection(const std::list<QPoint>& points)
+	std::list<QPoint> AurelCornerDetection(std::list<QPoint>& points)
 	{
 		std::list<QPoint> anchors = {points.front()};
 
 		QPoint corner1 = GetFarthestPointFromAnchors(anchors, points);
 		anchors.remove(anchors.front());
+		points.remove(corner1);
 		anchors.push_back(corner1);
 
 		QPoint corner2 = GetFarthestPointFromAnchors(anchors, points);
+		points.remove(anchors.front());
 		anchors.push_back(corner2);
 
 		QPoint corner3 = GetFarthestPointFromAnchors(anchors, points);
+		points.remove(anchors.front());
 		anchors.push_back(corner3);
-		
+
 		QPoint corner4 = GetFarthestPointFromAnchors(anchors, points);
+		points.remove(anchors.front());
 		anchors.push_back(corner4);
 
 		return anchors;

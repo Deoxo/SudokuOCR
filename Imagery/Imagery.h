@@ -146,7 +146,7 @@ namespace Imagery
 
 	void RemoveBorderArtifacts(Matrix** cells);
 
-	int* GetEmptyCells(const Matrix** cells, float emptinessThreshold);
+	bool* GetEmptyCells(const Matrix** cells, float emptinessThreshold);
 
 	Matrix** ResizeCellsTo28x28(const Matrix** cells);
 
@@ -155,7 +155,7 @@ namespace Imagery
 
 	void VerticalOffset(Matrix& m, int offset);
 
-	Matrix** CenterCells(const Matrix** cells, const int* emptyCells);
+	Matrix** CenterCells(const Matrix** cells, const bool* emptyCells);
 
 	// Delete a pixel and recursively delete its neighbors if they are white.
 	void RemoveContinuousPixels(Matrix& img, int y, int x);
@@ -192,7 +192,7 @@ namespace Imagery
 	Matrix*
 	ExtractBiggestPixelGroupAndCorners(const Matrix& img, int halfWindowSize, Square* corners, float target = 255);
 
-	std::list<QPoint> AurelCornerDetection(const std::list<QPoint>& points);
+	std::list<QPoint> AurelCornerDetection(std::list<QPoint>& points);
 }
 
 #endif //SUDOKUOCR_IMAGERY_H

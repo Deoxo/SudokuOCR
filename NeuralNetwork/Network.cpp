@@ -199,47 +199,47 @@ void MNIST(const int saveNeuralNetwork)
     delete[] layerTypes;
 }*/
 
-/*void Custom(const int saveNeuralNetwork)
+void Custom(const int saveNeuralNetwork)
 {
-    const int numTrainingSets = 34900;//35000;
-    const int numInputsNodes = 784, numHiddenNodes = 100, numOutputsNodes = 9;
-    const int numLayers = 3;
-    const int batchSize = 100;
-    const float learningRate = 1.f;
+	const int numTrainingSets = 34900;//35000;
+	const int numInputsNodes = 784, numHiddenNodes = 100, numOutputsNodes = 9;
+	const int batchSize = 100;
+	const float learningRate = 1.f;
 
-    Matrix*** MNIST = LoadCustom("./datasets/custom", numTrainingSets, 0);
-    const Matrix** inputs = (const Matrix**) MNIST[0];
-    const Matrix** outputs = (const Matrix**) MNIST[1];
+	Matrix*** custom = LoadCustom("../datasets/custom", numTrainingSets, 0);
+	const Matrix** inputs = (const Matrix**) custom[0];
+	const Matrix** outputs = (const Matrix**) custom[1];
 
 
-    const int numberOfEpochs = 8;
-    int* numNeuronsPerLayer = new int[3]{numInputsNodes, numHiddenNodes, numOutputsNodes};
-    ActivationFunctions* activationFunctions = new ActivationFunctions[3]{None, SigmoidActivation, SoftmaxActivation};
-    LayerTypes* layerTypes = new LayerTypes[3]{Input, FC, FC};
-    NeuralNetwork* network = CreateNeuralNetwork(numNeuronsPerLayer, numLayers, activationFunctions, layerTypes, learningRate,
-                                                 Adam, MSE_Cost);
-    TrainNeuralNetwork(network, inputs, outputs, numTrainingSets, numberOfEpochs, batchSize, NUM_THREADS);
+	const int numberOfEpochs = 4;
+	NeuralNetwork* network = new NeuralNetwork(Adam, MSE, learningRate);
 
-    Matrix*** testDataset = LoadCustom("./datasets/customTest", 990, 0);
-    printf("Accuracy on test data: %.2f%%\n",
-           ComputeAccuracy(network, (const Matrix**) testDataset[0], (const Matrix**) testDataset[1], 990));
+	network->AddLayer(new InputLayer(numInputsNodes));
+	network->AddLayer(new DropoutLayer(Sigmoid, numHiddenNodes, .4f));
+	network->AddLayer(new FCL(Softmax, numOutputsNodes));
 
-    if (saveNeuralNetwork)
-    {
-        SaveNeuralNetwork(network, "./nn.bin");
-        printf("Saved neural network\n");
-    }
+	network->Compile();
+	network->Train(inputs, outputs, numTrainingSets, numberOfEpochs, batchSize, NUM_THREADS);
 
-    delete network;
-    delete[] numNeuronsPerLayer;
-    delete[] activationFunctions;
-    delete[] layerTypes;
-}*/
+	const int numTestSets = 987;
+	Matrix*** testDataset = LoadCustom("../datasets/customTest", numTestSets, 0);
+	printf("Accuracy on test data: %.2f%%\n",
+		   network->ComputeAccuracy((const Matrix**) testDataset[0], (const Matrix**) testDataset[1], numTestSets,
+									false));
+
+	if (saveNeuralNetwork)
+	{
+		network->SaveToFile("./nn.bin");
+		printf("Saved neural network\n");
+	}
+
+	delete network;
+}
 
 void Custom3(const int saveNeuralNetwork)
 {
-	const int numData = 17658;
-	const int numTrainingSets = 17000;//17600;
+	const int numData = 14700;
+	const int numTrainingSets = 14000;//17600;
 	const int numInputsNodes = 784, numHiddenNodes = 100, numOutputsNodes = 9;
 	const int batchSize = 100;
 	const int numberOfEpochs = 15;
@@ -275,31 +275,31 @@ void Custom3(const int saveNeuralNetwork)
 
 /*int main(int argc [[maybe_unused]], char** argv [[maybe_unused]])
 {
-    //Todo: figure out why using NUM_THREADS instead of 1 results in an accuracy 2% lower
-    //Todo: implement CNNs
-    //Todo: understand why reLU dies (outputs is 0s)
-    //Todo: improve convolutions by removing indexes test from nested for loops and treating edges separately
-    //Todo: add proper implementation of flatten layers
-    //Todo: Proper save/load system for optimizers and learning rate and special layers parameters
-    //Todo: Make proper parameter passing for special layers parameters
+	//Todo: figure out why using NUM_THREADS instead of 1 results in an accuracy 2% lower
+	//Todo: implement CNNs
+	//Todo: understand why reLU dies (outputs is 0s)
+	//Todo: improve convolutions by removing indexes test from nested for loops and treating edges separately
+	//Todo: add proper implementation of flatten layers
+	//Todo: Proper save/load system for optimizers and learning rate and special layers parameters
+	//Todo: Make proper parameter passing for special layers parameters
 
-    Custom3(1);
-    //MNIST(1);
-    return 0;
+	Custom3(1);
+	//MNIST(1);
+	return 0;
 
-    NeuralNetwork* nn = NeuralNetwork::LoadFromFile("./nn.bin");
-    const int numInputs = 60000;
-    Matrix*** MNIST = LoadMnist("./datasets/mnist.csv", numInputs, 0);
-    const Matrix** inputs = (const Matrix**) MNIST[0];
-    const Matrix** outputs = (const Matrix**) MNIST[1];
-    const float accuracy = nn->ComputeAccuracy(inputs + (int) (numInputs * .8f), outputs + (int) (numInputs * .8f),
-                                               (int) (numInputs * .2f), false);
-    printf("Accuracy: %.2f%%\n", accuracy);
+	NeuralNetwork* nn = NeuralNetwork::LoadFromFile("./nn.bin");
+	const int numInputs = 60000;
+	Matrix*** MNIST = LoadMnist("./datasets/mnist.csv", numInputs, 0);
+	const Matrix** inputs = (const Matrix**) MNIST[0];
+	const Matrix** outputs = (const Matrix**) MNIST[1];
+	const float accuracy = nn->ComputeAccuracy(inputs + (int) (numInputs * .8f), outputs + (int) (numInputs * .8f),
+											   (int) (numInputs * .2f), false);
+	printf("Accuracy: %.2f%%\n", accuracy);
 
-    nn->Train(inputs, outputs, (int) (60000 * .8f), 1, 100, NUM_THREADS);
-    delete nn;
+	nn->Train(inputs, outputs, (int) (60000 * .8f), 1, 100, NUM_THREADS);
+	delete nn;
 
-    return 0;
+	return 0;
 }*/
 
 NeuralNetwork::~NeuralNetwork()

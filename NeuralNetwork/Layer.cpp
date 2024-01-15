@@ -515,9 +515,9 @@ FCL::Compile(const LayerShape& shape, const LayerShape& previousLayerShape, Opti
 
 	// Initialize weights and biases
 	for (int j = 0; j < weights->matrixSize; ++j)
-		weights->data[j] = (j % 10) / 5.f - 1;//((double) rand()) / ((double) RAND_MAX) * 2 - 1;
+		weights->data[j] = ((double) rand()) / ((double) RAND_MAX) * 2 - 1;
 	for (int j = 0; j < biases->matrixSize; ++j)
-		biases->data[j] = (j % 10) / 5.f - 1;//((double) rand()) / ((double) RAND_MAX) * 2 - 1;
+		biases->data[j] = ((double) rand()) / ((double) RAND_MAX) * 2 - 1;
 
 	// Make sure the deltaSums are initialized to 0
 	deltaWeightsSum->Reset();

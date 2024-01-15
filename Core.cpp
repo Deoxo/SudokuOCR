@@ -184,7 +184,7 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	Matrix** cells = Imagery::Split(*perspective);
 	Matrix** borderlessCells = Imagery::CropBorders((const Matrix**) cells, BORDER_CROP_PERCENTAGE);
 	Matrix** resizedCells = Imagery::ResizeCellsTo28x28((const Matrix**) borderlessCells);
-	int* emptyCells = Imagery::GetEmptyCells((const Matrix**) resizedCells, EMPTY_CELL_THRESHOLD);
+	bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) resizedCells, EMPTY_CELL_THRESHOLD);
 	Matrix** centeredCells = Imagery::CenterCells((const Matrix**) resizedCells, emptyCells);
 
 	// Digit recognition

@@ -58,6 +58,8 @@
 #                     rotated_digit = rotated_digit.rotate(angle, resample=Image.BICUBIC, fillcolor="black")
 #                     image.paste(rotated_digit, (0, 0), rotated_digit)
 #                     binarized_image = image.point(lambda pixel: 0 if pixel == 0 else 255, '1')
+#                     binarized_image = binarized_image.filter(ImageFilter.MinFilter(3))
+#                     binarized_image = binarized_image.filter(ImageFilter.MaxFilter(3))
 #                     output_filename = f"{output_folder}/digit_{digit}_{sample}_{round(angle, 4)}.png"
 #
 #                     binarized_image.save(output_filename)
@@ -65,15 +67,15 @@
 #                     print(f"Error generating sample for digit {digit}: {e}")
 #
 #
-# fonts_folder_path = 'datasets/Fonts'
-# output_folder_path = 'datasets/custom'
-# output_test_folder_path = 'datasets/customTest'
+# fonts_folder_path = '../datasets/Fonts'
+# output_folder_path = '../datasets/custom'
+# output_test_folder_path = '../datasets/customTest'
 #
 # numTrainSamples = 35000
 # numTestSamples = 1000
-# digit_size_percentage_range = (40, 95)
-# rotation_range = (-2, 2)
-# offset_range_percentage = (-0.2, 0.2)
+# digit_size_percentage_range = (60, 95)
+# rotation_range = (-0.1, 0.1)
+# offset_range_percentage = (-0.02, 0.02)
 #
 # generate_sudoku_dataset(fonts_folder_path, output_folder_path, num_samples=numTrainSamples,
 #                         digit_size_percentage_range=digit_size_percentage_range, rotation_range=rotation_range,
@@ -120,7 +122,7 @@ def generate_sudoku_dataset(fonts_folder, output_path, output_image_size=(1000, 
     fonts = [os.path.join(fonts_folder, file) for file in os.listdir(fonts_folder)
              if file.endswith('.ttf') or file.endswith('.TTF')]
 
-    with open("datasets/custom2/sudokus.txt", "w") as f:
+    with open("../datasets/custom2/sudokus.txt", "w") as f:
         for i in range(num_outputs):
             print("Generating sudoku " + str(i))
             # Create a white canvas
@@ -165,4 +167,4 @@ def generate_sudoku_dataset(fonts_folder, output_path, output_image_size=(1000, 
 
 
 # Example usage with digit size range (20 to 40)
-generate_sudoku_dataset("./datasets/Fonts", "./datasets/custom2", num_outputs=400, digit_size_range=(45, 80))
+generate_sudoku_dataset("../datasets/Fonts", "../datasets/custom2", num_outputs=400, digit_size_range=(45, 80))
