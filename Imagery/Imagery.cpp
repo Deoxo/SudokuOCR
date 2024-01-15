@@ -8,6 +8,7 @@
 #include "../Tools/Settings.h"
 #include "Tools/FileManagement.h"
 #include <iostream>
+#include <stack>
 
 namespace Imagery
 {
@@ -1040,33 +1041,46 @@ namespace Imagery
 		return centeredCells;
 	}
 
-	// Delete a pixel and recursively delete its neighbors if they are white.
-	void RemoveContinuousPixels(Matrix& img, const int y, const int x) // NOLINT(*-no-recursion)
+
+	// Delete a pixel and recursively delete its neighbors within a given window if they are white.
+	void
+	RemoveContinuousPixels(Matrix& img, const int oy, const int ox, const int halfWindowSize)
 	{
-		if (y < 0 || y >= img.rows || x < 0 || x >= img.cols)
-			return;
-		if (img.data[y * img.cols + x] == 0)
-			return;
+		// Use stack instead of recursion to avoid stack overflow
+		std::stack<Point> stack;
+		stack.emplace(ox, oy);
 
-		img.data[y * img.cols + x] = 0;
+		while (!stack.empty())
+		{
+			const Point p = stack.top();
+			stack.pop();
+			const int x = p.x;
+			const int y = p.y;
+			if (y < 0 || y >= img.rows || x < 0 || x >= img.cols)
+				continue;
+			if (img.data[y * img.cols + x] == 0)
+				continue;
 
-		RemoveContinuousPixels(img, y - 1, x);
-		RemoveContinuousPixels(img, y + 1, x);
-		RemoveContinuousPixels(img, y, x - 1);
-		RemoveContinuousPixels(img, y, x + 1);
+			img.data[y * img.cols + x] = 0;
+
+			for (int y_ = -halfWindowSize; y_ <= halfWindowSize; ++y_)
+				for (int x_ = -halfWindowSize; x_ <= halfWindowSize; ++x_)
+					stack.emplace(x + x_, y + y_);
+		}
 	}
 
 	void RemoveLines(Matrix& img)
 	{
+		const int halfWindowSize = std::min(1, std::min(img.cols, img.rows) / 300);
 		for (int x = 0; x < img.cols; ++x)
 		{
-			RemoveContinuousPixels(img, 0, x);
-			RemoveContinuousPixels(img, img.rows - 1, x);
+			RemoveContinuousPixels(img, 0, x, halfWindowSize);
+			RemoveContinuousPixels(img, img.rows - 1, x, halfWindowSize);
 		}
 		for (int y = 0; y < img.rows; ++y)
 		{
-			RemoveContinuousPixels(img, y, 0);
-			RemoveContinuousPixels(img, y, img.cols - 1);
+			RemoveContinuousPixels(img, y, 0, halfWindowSize);
+			RemoveContinuousPixels(img, y, img.cols - 1, halfWindowSize);
 		}
 	}
 

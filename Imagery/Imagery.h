@@ -158,7 +158,7 @@ namespace Imagery
 	Matrix** CenterCells(const Matrix** cells, const bool* emptyCells);
 
 	// Delete a pixel and recursively delete its neighbors if they are white.
-	void RemoveContinuousPixels(Matrix& img, int y, int x);
+	void RemoveContinuousPixels(Matrix& img, int oy, int ox, int halfWindowSize);
 
 	void RemoveLines(Matrix& img);
 

@@ -132,6 +132,8 @@ namespace Solver
 
 				if (value != 0)
 				{
+					if (rows[y][value - 1] || cols[x][value - 1] || squares[(y / 3) * 3 + (x / 3)][value - 1])
+						return nullptr;
 					rows[y][value - 1] = true;
 					cols[x][value - 1] = true;
 					squares[(y / 3) * 3 + (x / 3)][value - 1] = true;
