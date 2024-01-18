@@ -64,8 +64,7 @@ DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePat
 	Imagery::Dilate(*dilated0, *eroded0, DELATE_KERNEL_SIZE);
 
 	// Blur
-	Matrix* blurred = Matrix::CreateSameSize(*m);
-	Imagery::Blur(*eroded0, *blurred, 5);
+	Matrix* blurred = Imagery::Blur(*eroded0, 5);
 
 	// Binarize
 	Matrix* binarized = Matrix::CreateSameSize(*m);
@@ -111,7 +110,7 @@ DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePat
 	Imagery::Canny(*dilated, *canny, 50, 150);
 
 	Square* bestSquare = new Square();
-	Matrix* mainPixels = Imagery::ExtractBiggestPixelGroupAndCorners(*canny, 3, bestSquare);
+	Matrix* mainPixels = GridDetection::ExtractBiggestPixelGroupAndCorners(*canny, 3, bestSquare);
 
 	// Get edges
 	//Matrix* sobelEdges = Matrix::CreateSameSize(*m);
@@ -181,7 +180,8 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 {
 	const int sw = detectionInfo->e->cols, sh = detectionInfo->e->rows;
 	const int squareSize = std::min(sw, sh);
-	Square desiredSquare = Imagery::GetDesiredEdges(*detectionInfo->bestSquare, -detectionInfo->angle, squareSize - 1);
+	Square desiredSquare = GridDetection::GetDesiredEdges(*detectionInfo->bestSquare, -detectionInfo->angle,
+														  squareSize - 1);
 	qDebug() << "Desired square";
 
 	// Extract the Sudoku from the image
@@ -196,7 +196,7 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 	Matrix** borderlessCells = Imagery::CropBorders((const Matrix**) cells, BORDER_CROP_PERCENTAGE);
 	Matrix** resizedCells = Imagery::ResizeCellsTo28x28((const Matrix**) borderlessCells);
 	bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) resizedCells, EMPTY_CELL_THRESHOLD);
-	Matrix** centeredCells = Imagery::ExtractAndCenterCellsDigits((const Matrix**) resizedCells, emptyCells);
+	Matrix** centeredCells = GridDetection::ExtractAndCenterCellsDigits((const Matrix**) resizedCells, emptyCells);
 
 	// Digit recognition
 	Matrix digits(9, 9);
@@ -212,7 +212,7 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 		sprintf(cellName, "digit_%i_%i_%i.png", imgDigits[i], imgId, i);
 		centeredCells[i]->SaveAsImg(savePath, cellName);
 
-		*centeredCells[i] *= 1.f / 255.f;
+		*centeredCells[i] /= 255.f;
 		digits.data[i] = (float) nn->Predict(*centeredCells[i]) + 1;
 	}
 

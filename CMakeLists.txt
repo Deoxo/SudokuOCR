@@ -68,6 +68,8 @@ set(PROJECT_SOURCES
         Tools/Solver.cpp
         Tools/Solver.h
         NeuralNetwork/Custom3Generator.cpp
+        Tools/Math.cpp
+        Tools/Math.h
 )
 include_directories(${PROJECT_SOURCE_DIR})
 if (${QT_VERSION_MAJOR} GREATER_EQUAL 6)

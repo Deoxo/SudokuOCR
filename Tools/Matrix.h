@@ -10,7 +10,7 @@
 #if DEBUG_MODE
 #define SAFE 1
 #else
-#define SAFE 0
+#define SAFE 1
 #endif
 
 class Matrix
@@ -25,11 +25,13 @@ public:
 
 	Matrix(int rows, int cols, int dims = 1);
 
+	Matrix(int rows, int cols, const std::initializer_list<float>& data);
+
 	~Matrix();
 
 	void Convolution(const Matrix& filter, Matrix& output) const;
 
-	static void ValidConvolution(const Matrix& m, const Matrix& filter, Matrix& output);
+	static Matrix* ValidConvolution(const Matrix& m, const Matrix& filter);
 
 	static void FullConvolution(const Matrix& m, const Matrix& filter, Matrix& output);
 
@@ -80,6 +82,8 @@ public:
 	Matrix& operator+=(float scalar);
 
 	Matrix& operator*=(float scalar);
+
+	Matrix& operator/=(float scalar);
 
 	[[nodiscard]] float Max() const;
 

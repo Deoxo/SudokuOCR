@@ -28,6 +28,21 @@ namespace GridDetection
 	Line* HoughLinesToCartesianLines(const HoughLine* houghLines, int numLines, int imgWidth, int imgHeight);
 
 	Square* FindBestSquare(const List* squares, int numSquares, const Matrix& dilated);
+
+	Matrix** ExtractAndCenterCellsDigits(const Matrix** cells, const bool* emptyCells);
+
+	// Extract the Sudoku region from the straightened image
+	Matrix*
+	ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, float rotationAngle);
+
+	Square GetDesiredEdges(const Square& sudokuEdges, float angle, int outputSize);
+
+	Matrix*
+	ExtractBiggestPixelGroupAndCorners(const Matrix& img, int halfWindowSize, Square* corners, float target = 255.f);
+
+	std::list<QPoint> GetMainPixelsGroup(const Matrix& img, int halfWindowSize, float target = 255.f);
+
+	std::list<QPoint> AurelCornerDetection(std::list<QPoint>& points);
 }
 
 #endif //S3PROJECT_GRIDDETECTION_H

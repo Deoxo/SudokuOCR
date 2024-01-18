@@ -13,6 +13,4 @@ Matrix*** LoadCustom(const char* path, int dataLength, int format2D);
 
 Matrix*** LoadCustom3(const char* path, int dataLength, int format2D);
 
-/*Matrix*** LoadAdrien(int dataLength);*/
-
 #endif //S3PROJECT_DATASETMANAGER_H

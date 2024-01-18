@@ -2,9 +2,11 @@
 // Created by mat on 03/10/23.
 //
 
+#include <QLineF>
 #include "GridDetection.h"
 #include "../Tools/Settings.h"
 #include "Imagery.h"
+#include "Tools/Math.h"
 
 namespace GridDetection
 {
@@ -31,20 +33,6 @@ namespace GridDetection
 					numLines2--;
 					line1->rho = midRho;
 					line1->theta = midTheta;
-					// Remove the line that is the closest to the origin.
-					/*if (line1->rho < line2->rho)
-					{
-						for (int k = i; k < numLines2 - 1; k++)
-							lines[k] = lines[k + 1];
-						numLines2--;
-						j--;
-					}
-					else
-					{
-						for (int k = j; k < numLines2 - 1; k++)
-							lines[k] = lines[k + 1];
-						numLines2--;
-					}*/
 				}
 			}
 		}
@@ -156,8 +144,8 @@ namespace GridDetection
 				const float intensity = accumulator->data[rho * accumulator->cols + theta];
 				if (intensity > houghThreshold)
 				{
-					lines[linesIndex].rho = rho - diagonal;
-					lines[linesIndex].theta = theta * M_PI / 180;
+					lines[linesIndex].rho = (float) (rho - diagonal);
+					lines[linesIndex].theta = (float) theta * M_PIf / 180.f;
 
 					linesIndex++;
 				}
@@ -220,13 +208,6 @@ namespace GridDetection
 		return cartesianLines;
 	}
 
-	float Distance(const Point* pt1, const Point* pt2)
-	{
-		return std::sqrt(
-				std::pow<float, float>(pt1->x - pt2->x, 2) +
-				powf(pt1->y - pt2->y, 2)); // NOLINT(*-narrowing-conversions)
-	}
-
 	// Remove the lines that are too close to each other.
 	void FilterIntersections(List* intersections, int* numIntersections)
 	{
@@ -237,7 +218,7 @@ namespace GridDetection
 			for (int j = i + 1; j < numIntersections2; j++)
 			{
 				Point* pt2 = (Point*) ListGet(intersections, j);
-				const float distance = Distance(pt1, pt2);
+				const float distance = Imagery::Dist(*pt1, *pt2);
 				if (distance < MIN_INTERSECTION_DIST)
 				{
 					// Calculate the middle point
@@ -278,8 +259,8 @@ namespace GridDetection
 				if (denominator != 0)
 				{
 					// Only consider intersections between perpendicular lines
-					const float theta1 = atan2f(line1.y1 - line1.y2, line1.x1 - line1.x2);
-					const float theta2 = atan2f(line2.y1 - line2.y2, line2.x1 - line2.x2);
+					const float theta1 = atan2f((float) (line1.y1 - line1.y2), (float) (line1.x1 - line1.x2));
+					const float theta2 = atan2f((float) (line2.y1 - line2.y2), (float) (line2.x1 - line2.x2));
 					if (std::abs(theta1 - theta2) < M_PI / 3.f)
 						continue;
 
@@ -316,97 +297,9 @@ namespace GridDetection
 
 	List* FindIntersections2(Line* cartesianLines, const int numLines, const int imageWidth, const int imgHeight)
 	{
-		/*if (line1.x1 == line1.x2 && line2.x1 == line2.x2)
-				{
-					// Both lines are vertical
-					if (line1.x1 == line2.x1)
-					{
-						// Check if they have the same x-coordinate, which means they overlap.
-						// You can handle this case according to your requirements.
-						continue;
-					}
-					else
-					{
-						// Parallel vertical lines that do not overlap, so no intersection.
-						continue;
-					}
-				}
-				else if (line1.x1 == line1.x2)
-				{
-					// Line 1 is vertical, calculate the intersection using Line 2's equation
-					double m2 = (line2.y2 - line2.y1) / (line2.x2 - line2.x1);
-					int x = line1.x1; // The x-coordinate of the intersection is the same as that of Line 1.
-					int y = m2 * x + (line2.y1 - m2 * line2.x1);
-					if (x < 0 || x > imageWidth)
-						continue;
-
-					if (y < 0 || y > imgHeight)
-						continue;
-
-					intersection* inter = malloc(sizeof(intersection));
-					point* pt = malloc(sizeof(point));
-					pt->x = x;
-					pt->y = y;
-					inter->point = pt;
-					inter->line2Id = j;
-					ListAdd(lineIntersections, inter);
-					printf("Intersection: (%d, %d)\n", x, y);
-				}
-				else if (line2.x1 == line2.x2)
-				{
-					// Line 2 is vertical, calculate the intersection using Line 1's equation
-					double m1 = (line1.y2 - line1.y1) / (line1.x2 - line1.x1);
-					int x = line2.x1; // The x-coordinate of the intersection is the same as that of Line 2.
-					int y = m1 * x + (line1.y1 - m1 * line1.x1);
-					if (x < 0 || x > imageWidth)
-						continue;
-
-					if (y < 0 || y > imgHeight)
-						continue;
-
-					intersection* inter = malloc(sizeof(intersection));
-					point* pt = malloc(sizeof(point));
-					pt->x = x;
-					pt->y = y;
-					inter->point = pt;
-					inter->line2Id = j;
-					ListAdd(lineIntersections, inter);
-					printf("Intersection: (%d, %d)\n", x, y);
-				}
-				else
-				{
-					// Neither line is vertical, proceed with the general case
-					double m1 = (line1.y2 - line1.y1) / (line1.x2 - line1.x1);
-					double m2 = (line2.y2 - line2.y1) / (line2.x2 - line2.x1);
-
-					// Check if lines are parallel
-					if (m1 == m2)
-					{
-						continue;
-					}
-
-					double b1 = line1.y1 - m1 * line1.x1;
-					double b2 = line2.y1 - m2 * line2.x1;
-
-					int x = (b2 - b1) / (m1 - m2);
-					int y = m1 * x + b1;
-
-					if (x < 0 || x > imageWidth)
-						continue;
-
-					if (y < 0 || y > imgHeight)
-						continue;
-
-					intersection* inter = malloc(sizeof(intersection));
-					point* pt = malloc(sizeof(point));
-					pt->x = x;
-					pt->y = y;
-					inter->point = pt;
-					inter->line2Id = j;
-					ListAdd(lineIntersections, inter);
-					printf("Intersection: (%d, %d)\n", x, y);
-				}*/
 		List* intersections = ListCreate();
+		const float wf = (float) imageWidth;
+		const float hf = (float) imgHeight;
 
 		// Find intersections
 		for (int i = 0; i < numLines; i++)
@@ -417,13 +310,13 @@ namespace GridDetection
 				const Line line1 = cartesianLines[i];
 				const Line line2 = cartesianLines[j];
 
-				const float x12 = line1.x1 - line1.x2;
-				const float x34 = line2.x1 - line2.x2;
-				const float y12 = line1.y1 - line1.y2;
-				const float y34 = line2.y1 - line2.y2;
+				const float x12 = (float) (line1.x1 - line1.x2);
+				const float x34 = (float) (line2.x1 - line2.x2);
+				const float y12 = (float) (line1.y1 - line1.y2);
+				const float y34 = (float) (line2.y1 - line2.y2);
 				const float c = x12 * y34 - y12 * x34;
-				const float a = line1.x1 * line1.y2 - line1.y1 * line1.x2;
-				const float b = line2.x1 * line2.y2 - line2.y1 * line2.x2;
+				const float a = (float) (line1.x1 * line1.y2 - line1.y1 * line1.x2);
+				const float b = (float) (line2.x1 * line2.y2 - line2.y1 * line2.x2);
 				if (c != 0)
 				{
 					// Intersection point
@@ -431,59 +324,20 @@ namespace GridDetection
 					const float y = (a * y34 - b * y12) / c;
 
 					// Discard points outside the image
-					if (x < 0 || x >= imageWidth)
+					if (x < 0 || x >= wf)
 						continue;
-					if (y < 0 || y >= imgHeight)
+					if (y < 0 || y >= hf)
 						continue;
 
 					// Add the intersection to the list
 					Intersection* inter = new Intersection();
 					Point* pt = new Point();
-					pt->x = x;
-					pt->y = y;
+					pt->x = (int) x;
+					pt->y = (int) y;
 					inter->point = pt;
 					inter->line2Id = j;
 					ListAdd(lineIntersections, inter);
-					//printf("Intersection: (%f, %f)\n", x, y);
 				}
-
-				// Denominator method, seems to not be working all the time.
-				/*const int denominator = (line1.x1 - line1.x2) * (line2.y1 - line2.y2) -
-										(line1.y1 - line1.y2) * (line2.x1 - line2.x2);
-
-				// If the denominator is 0, the lines are parallel
-				if (denominator != 0)
-				{
-					// Only consider intersections between perpendicular lines
-					const float theta1 = atan2f(line1.y1 - line1.y2, line1.x1 - line1.x2);
-					const float theta2 = atan2f(line2.y1 - line2.y2, line2.x1 - line2.x2);
-					if (std::abs(theta1 - theta2) < M_PI / 3.f)
-						continue;
-
-					// Compute intersection point
-					const int x = ((line1.x1 * line1.y2 - line1.y1 * line1.x2) * (line2.x1 - line2.x2) -
-								   (line1.x1 - line1.x2) * (line2.x1 * line2.y2 - line2.y1 * line2.x2)) / denominator;
-
-					//if (x < 0 || x > imageWidth)
-					//    continue;
-
-					const int y = ((line1.x1 * line1.y2 - line1.y1 * line1.x2) * (line2.y1 - line2.y2) -
-								   (line1.y1 - line1.y2) * (line2.x1 * line2.y2 - line2.y1 * line2.x2)) / denominator;
-
-					// Discard points outside the image
-					if (y < 0 || y > imgHeight)
-						continue;
-
-					// Add the intersection to the list
-					intersection* inter = malloc(sizeof(intersection));
-					point* pt = malloc(sizeof(point));
-					pt->x = x;
-					pt->y = y;
-					inter->point = pt;
-					inter->line2Id = j;
-					ListAdd(lineIntersections, inter);
-					printf("Intersection: (%d, %d)\n", x, y);
-				}*/
 			}
 			ListAdd(intersections, lineIntersections);
 		}
@@ -515,12 +369,12 @@ namespace GridDetection
 	{
 		// Edge distances
 		const float d[6] = {
-				Distance(&square->topRight, &square->bottomRight),
-				Distance(&square->bottomRight, &square->bottomLeft),
-				Distance(&square->bottomLeft, &square->topLeft),
-				Distance(&square->topLeft, &square->topRight),
-				Distance(&square->topRight, &square->bottomLeft),
-				Distance(&square->bottomRight, &square->topLeft),
+				Imagery::Dist(square->topRight, square->bottomRight),
+				Imagery::Dist(square->bottomRight, square->bottomLeft),
+				Imagery::Dist(square->bottomLeft, square->topLeft),
+				Imagery::Dist(square->topLeft, square->topRight),
+				Imagery::Dist(square->topRight, square->bottomLeft),
+				Imagery::Dist(square->bottomRight, square->topLeft),
 		};
 
 		// Sorted edge distances
@@ -542,18 +396,18 @@ namespace GridDetection
 				return 0;
 
 		// Compute dot products
-		const float dotProduct1 =
+		const float dotProduct1 = (float) (
 				(square->bottomRight.x - square->topRight.x) * (square->bottomLeft.x - square->bottomRight.x) +
-				(square->bottomRight.y - square->topRight.y) * (square->bottomLeft.y - square->bottomRight.y);
-		const float dotProduct2 =
+				(square->bottomRight.y - square->topRight.y) * (square->bottomLeft.y - square->bottomRight.y));
+		const float dotProduct2 = (float) (
 				(square->bottomLeft.x - square->bottomRight.x) * (square->topLeft.x - square->bottomLeft.x) +
-				(square->bottomLeft.y - square->bottomRight.y) * (square->topLeft.y - square->bottomLeft.y);
-		const float dotProduct3 =
+				(square->bottomLeft.y - square->bottomRight.y) * (square->topLeft.y - square->bottomLeft.y));
+		const float dotProduct3 = (float) (
 				(square->topLeft.x - square->bottomLeft.x) * (square->topRight.x - square->topLeft.x) +
-				(square->topLeft.y - square->bottomLeft.y) * (square->topRight.y - square->topLeft.y);
-		const float dotProduct4 =
+				(square->topLeft.y - square->bottomLeft.y) * (square->topRight.y - square->topLeft.y));
+		const float dotProduct4 = (float) (
 				(square->topRight.x - square->topLeft.x) * (square->bottomRight.x - square->topRight.x) +
-				(square->topRight.y - square->topLeft.y) * (square->bottomRight.y - square->topRight.y);
+				(square->topRight.y - square->topLeft.y) * (square->bottomRight.y - square->topRight.y));
 
 		// Remap dot products to [-1, 1]
 		const float dotProduct1Remapped = dotProduct1 / (d[0] * d[1]);
@@ -683,12 +537,12 @@ namespace GridDetection
 	int SquareFitness(const Square* s, const Matrix& dilated)
 	{
 		float edgeDistances[6] = {
-				Distance(&s->topRight, &s->bottomRight),
-				Distance(&s->bottomRight, &s->bottomLeft),
-				Distance(&s->bottomLeft, &s->topLeft),
-				Distance(&s->topLeft, &s->topRight),
-				Distance(&s->topRight, &s->bottomLeft),
-				Distance(&s->bottomRight, &s->topLeft),
+				Imagery::Dist(s->topRight, s->bottomRight),
+				Imagery::Dist(s->bottomRight, s->bottomLeft),
+				Imagery::Dist(s->bottomLeft, s->topLeft),
+				Imagery::Dist(s->topLeft, s->topRight),
+				Imagery::Dist(s->topRight, s->bottomLeft),
+				Imagery::Dist(s->bottomRight, s->topLeft),
 		};
 		InsertionSort(edgeDistances, 6);
 
@@ -719,6 +573,259 @@ namespace GridDetection
 		}
 
 		return bestSquare;
+	}
+
+	Matrix** ExtractAndCenterCellsDigits(const Matrix** cells, const bool* emptyCells)
+	{
+		Matrix** centeredCells = new Matrix* [81];
+		for (int i = 0; i < 81; ++i)
+		{
+			centeredCells[i] = new Matrix(28, 28);
+
+			// Skip empty cells
+			if (emptyCells[i])
+			{
+				cells[i]->CopyValuesTo(*centeredCells[i]);
+				continue;
+			}
+
+			// Get the main group of pixels
+			std::list<QPoint> mainPoints = GetMainPixelsGroup(*cells[i], 2);
+
+			// Compute the center of the digit
+			int minX = 28, maxX = 0, minY = 28, maxY = 0;
+			for (const QPoint& p : mainPoints)
+			{
+				const int x = p.x();
+				const int y = p.y();
+				centeredCells[i]->data[y * centeredCells[i]->cols + x] = 255;
+				if (x < minX)
+					minX = x;
+				if (x > maxX)
+					maxX = x;
+				if (y < minY)
+					minY = y;
+				if (y > maxY)
+					maxY = y;
+			}
+			const int centerCol = (int) ((float) (minX + maxX) / 2.f);
+			const int centerRow = (int) ((float) (minY + maxY) / 2.f);
+
+			// Compute the offset to center the digit
+			const int offsetCol = 14 - centerCol;
+			const int offsetRow = 14 - centerRow;
+
+			// Center the digit
+			Imagery::HorizontalOffset(*centeredCells[i], offsetCol);
+			Imagery::VerticalOffset(*centeredCells[i], offsetRow);
+		}
+
+		return centeredCells;
+	}
+
+	// Extract the Sudoku region from the straightened image
+	Matrix*
+	ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, const float rotationAngle)
+	{
+		const Point squareCenter = (Point) {
+				(sudokuEdges.topLeft.x + sudokuEdges.topRight.x + sudokuEdges.bottomLeft.x +
+				 sudokuEdges.bottomRight.x) / 4,
+				(sudokuEdges.topLeft.y + sudokuEdges.topRight.y + sudokuEdges.bottomLeft.y +
+				 sudokuEdges.bottomRight.y) / 4};
+		Square* rotatedSquare1 = Imagery::RotateSquare(sudokuEdges, squareCenter, rotationAngle);
+		Square* rotatedSquare = Imagery::Order(*rotatedSquare1, straightImage.cols, straightImage.rows);
+		delete rotatedSquare1;
+
+		printf("stopLeft: %i %i\n", rotatedSquare->topLeft.x, rotatedSquare->topLeft.y);
+		printf("stopRight: %i %i\n", rotatedSquare->topRight.x, rotatedSquare->topRight.y);
+		printf("sbottomLeft: %i %i\n", rotatedSquare->bottomLeft.x, rotatedSquare->bottomLeft.y);
+		printf("sbottomRight: %i %i\n", rotatedSquare->bottomRight.x, rotatedSquare->bottomRight.y);
+
+		const int sudoku_width = abs(rotatedSquare->topRight.x - rotatedSquare->topLeft.x);
+		const int sudoku_height = abs(rotatedSquare->bottomLeft.y - rotatedSquare->topLeft.y);
+		Matrix* result = new Matrix(sudoku_height, sudoku_width);
+
+		for (int y = 0; y < sudoku_height; y++)
+		{
+			for (int x = 0; x < sudoku_width; x++)
+			{
+				// Map coordinates from the original Sudoku edges to the rotated image
+				Point rotatedPoint = {rotatedSquare->topLeft.x + x, rotatedSquare->topLeft.y + y};
+
+				// Get pixel value from the straightened image and set it in the result matrix
+				const float pixelValue =
+						rotatedPoint.x < 0 || rotatedPoint.y < 0 || rotatedPoint.x >= straightImage.cols ||
+						rotatedPoint.y >= straightImage.rows ? 0
+															 : straightImage.data[rotatedPoint.y * straightImage.cols +
+																				  rotatedPoint.x];
+				result->data[y * result->cols + x] = pixelValue;
+			}
+		}
+
+		delete rotatedSquare;
+
+		return result;
+	}
+
+	// Returns the index of the closest point to the target point
+	int ClosestPointIndex(const QPoint points[4], const QPoint& target)
+	{
+		int index = 0;
+		qreal minDist = QLineF(points[0], target).length();
+		for (int i = 1; i < 4; ++i)
+		{
+			const qreal dist = QLineF(points[i], target).length();
+			if (dist < minDist)
+			{
+				index = i;
+				minDist = dist;
+			}
+		}
+
+		return index;
+	}
+
+	// Computes the desired edges of the sudoku (ie the edges with the corrected perspective)
+	Square GetDesiredEdges(const Square& sudokuEdges, const float angle, const int outputSize)
+	{
+		// Load points with qt
+		QPoint perspectivePoints[4];
+		QPoint correctedPoints[4];
+		perspectivePoints[0] = (QPoint) sudokuEdges.topLeft;
+		perspectivePoints[1] = (QPoint) sudokuEdges.topRight;
+		perspectivePoints[2] = (QPoint) sudokuEdges.bottomLeft;
+		perspectivePoints[3] = (QPoint) sudokuEdges.bottomRight;
+
+		// Find the center
+		QPoint center =
+				(perspectivePoints[0] + perspectivePoints[1] + perspectivePoints[2] + perspectivePoints[3]) / 4.0;
+
+		// Rotate all points around the center to make the sudoku edges parallel to the image edges
+		for (int i = 0; i < 4; i++)
+			correctedPoints[i] = Math::RotateQPoint(perspectivePoints[i], center, angle);
+
+		// Find the closest point to each corner of the image
+		const int topLeftIndex = ClosestPointIndex(correctedPoints, {0, 0});
+		const int topRightIndex = ClosestPointIndex(correctedPoints, {outputSize, 0});
+		const int bottomLeftIndex = ClosestPointIndex(correctedPoints, {0, outputSize});
+		const int bottomRightIndex = ClosestPointIndex(correctedPoints, {outputSize, outputSize});
+
+		// Set the desired edges
+		correctedPoints[topLeftIndex] = {0, 0};
+		correctedPoints[topRightIndex] = {outputSize, 0};
+		correctedPoints[bottomLeftIndex] = {0, outputSize};
+		correctedPoints[bottomRightIndex] = {outputSize, outputSize};
+
+		// Return the desired edges
+		Square res;
+		res.topLeft = Point(correctedPoints[0]);
+		res.topRight = Point(correctedPoints[1]);
+		res.bottomLeft = Point(correctedPoints[2]);
+		res.bottomRight = Point(correctedPoints[3]);
+
+		return res;
+	}
+
+	Matrix*
+	ExtractBiggestPixelGroupAndCorners(const Matrix& img, const int halfWindowSize, Square* corners, const float target)
+	{
+		Matrix* res = Matrix::CreateSameSize(img);
+
+		// Group with most elements
+		std::list<QPoint> mainGroup = GetMainPixelsGroup(img, halfWindowSize, target);
+
+		// Write the main group to the result matrix
+		for (const QPoint& pixel : mainGroup)
+			res->data[pixel.y() * res->cols + pixel.x()] = target;
+
+		// Find the corners
+		std::list<QPoint> aurelCorners = AurelCornerDetection(mainGroup);
+
+		// Write the corners to the result square
+		corners->topLeft = Point(*std::next(aurelCorners.begin(), 0));
+		corners->topRight = Point(*std::next(aurelCorners.begin(), 1));
+		corners->bottomLeft = Point(*std::next(aurelCorners.begin(), 2));
+		corners->bottomRight = Point(*std::next(aurelCorners.begin(), 3));
+
+		return res;
+	}
+
+	// Returns the main group of contiguous pixels in the image
+	std::list<QPoint> GetMainPixelsGroup(const Matrix& img, const int halfWindowSize, const float target)
+	{
+		Matrix* tmp = Matrix::CreateSameSize(img);
+		img.CopyValuesTo(*tmp);
+		// Find all pixel groups
+		std::list<std::list<QPoint>> pixelGroups;
+		for (int y = 0; y < tmp->rows; ++y)
+		{
+			for (int x = 0; x < tmp->cols; ++x)
+			{
+				if (tmp->data[y * tmp->cols + x] == 255)
+				{
+					std::list<QPoint> group;
+					Imagery::FloodFill(*tmp, QPoint(x, y), halfWindowSize, group, target);
+					pixelGroups.push_back(group);
+				}
+			}
+		}
+
+		// Group with most elements
+		std::list<QPoint>& mainGroup = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
+														 [](const std::list<QPoint>& a,
+															const std::list<QPoint>& b)
+														 {
+															 return a.size() < b.size();
+														 });
+
+		delete tmp;
+		return mainGroup;
+	}
+
+	// Returns the point that is the farthest from all anchors
+	QPoint GetFarthestPointFromAnchors(std::list<QPoint>& anchors, const std::list<QPoint>& pts)
+	{
+		int maxIndex = 0;
+		float maxDistSum = 0;
+		int i = 0;
+		for (const QPoint& p : pts)
+		{
+			float distsSum = 0;
+			for (const QPoint& anchor : anchors)
+				distsSum += Imagery::Dist(p, anchor);
+			if (distsSum >= maxDistSum)
+			{
+				maxDistSum = distsSum;
+				maxIndex = i;
+			}
+			i++;
+		}
+
+		return *std::next(pts.begin(), maxIndex);
+	}
+
+	std::list<QPoint> AurelCornerDetection(std::list<QPoint>& points)
+	{
+		std::list<QPoint> anchors = {points.front()};
+
+		QPoint corner1 = GetFarthestPointFromAnchors(anchors, points);
+		anchors.remove(anchors.front());
+		points.remove(corner1);
+		anchors.push_back(corner1);
+
+		QPoint corner2 = GetFarthestPointFromAnchors(anchors, points);
+		points.remove(anchors.front());
+		anchors.push_back(corner2);
+
+		QPoint corner3 = GetFarthestPointFromAnchors(anchors, points);
+		points.remove(anchors.front());
+		anchors.push_back(corner3);
+
+		QPoint corner4 = GetFarthestPointFromAnchors(anchors, points);
+		points.remove(anchors.front());
+		anchors.push_back(corner4);
+
+		return anchors;
 	}
 }
 

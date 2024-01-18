@@ -35,6 +35,31 @@ Matrix::Matrix(const int rows, const int cols, const int dims)
 	std::fill(data, data + size, 0);
 }
 
+
+Matrix::Matrix(const int rows, const int cols, const std::initializer_list<float>& data)
+{
+#if SAFE
+	if (rows * cols != data.size())
+		throw std::runtime_error("Matrix : data size does not match matrix size !");
+#endif
+
+	this->matrixSize = rows * cols;
+	this->rows = rows;
+	this->cols = cols;
+	this->dims = 1;
+	this->offset = 0;
+	this->size = rows * cols * dims;
+#if USE_SSE2
+	this->data = (float*) _mm_malloc(sizeof(float) * this->size, 16);
+#elif USE_AVX2
+	this->data = (float*) _mm_malloc(sizeof(float) * this->size, 32);
+#else
+	this->data = new float[size];
+#endif
+
+	std::copy(data.begin(), data.end(), this->data);
+}
+
 void Matrix::Convolution(const Matrix& filter, Matrix& output) const
 {
 	const int filterSize = filter.rows;
@@ -68,21 +93,17 @@ void Matrix::Convolution(const Matrix& filter, Matrix& output) const
 	}
 }
 
-void Matrix::ValidConvolution(const Matrix& m, const Matrix& filter, Matrix& output)
+Matrix* Matrix::ValidConvolution(const Matrix& m, const Matrix& filter)
 {
-	const int outputCols = m.cols;
-	const int outputRows = m.rows;
-
 #if SAFE
-	if (output.cols != outputCols || outputRows != output.rows)
-	{
-		fprintf(stderr, "%s%i%s%i%s", "right shape is : (", outputRows, ",", outputCols, ")\n");
-		throw std::runtime_error("MatValidConvolution : Output Matrix has not the right shape ! ");
-	}
-
 	if (filter.rows != filter.cols || filter.rows % 2 == 0)
 		throw std::runtime_error("MatValidConvolution : Filter must be square and odd sized !");
 #endif
+
+	Matrix* output = new Matrix(m.rows, m.cols);
+
+	const int outputCols = m.cols;
+	const int outputRows = m.rows;
 
 	const int filterCols = filter.cols;
 	const int filterRows = filter.rows;
@@ -109,9 +130,11 @@ void Matrix::ValidConvolution(const Matrix& m, const Matrix& filter, Matrix& out
 						sum += m.data[inputRow * m.cols + inputCol] * filter.data[k * filter.cols + l];
 				}
 			}
-			output.data[i * output.cols + j] = sum;
+			output->data[i * output->cols + j] = sum;
 		}
 	}
+
+	return output;
 }
 
 void Matrix::FullConvolution(const Matrix& m, const Matrix& filter, Matrix& output)
@@ -682,6 +705,39 @@ Matrix& Matrix::operator*=(const float scalar)
 	return *this;
 }
 
+Matrix& Matrix::operator/=(float scalar)
+{
+#if USE_AVX2
+	__m256 scalarSSE = _mm256_set1_ps(scalar);
+	int i;
+	for (i = 0; i + 8 <= size; i += 8)
+	{
+		__m256 first = _mm256_loadu_ps(data + i);
+		__m256 result = _mm256_div_ps(first, scalarSSE);
+		_mm256_storeu_ps(data + i, result);
+	}
+
+	for (; i < size; i++)
+		data[i] /= scalar;
+#elif USE_SSE2 || USE_SSE3
+	__m128 scalarSSE = _mm_set1_ps(scalar);
+	for (int i = 0; i + 4 <= matrixSize; i += 4)
+	{
+		__m128 first = _mm_loadu_ps(data + i);
+		__m128 result = _mm_div_ps(first, scalarSSE);
+		_mm_storeu_ps(data + i, result);
+	}
+
+	for (int i = matrixSize - matrixSize % 4; i < matrixSize; i++)
+		data[i] /= scalar;
+#else
+	for (int i = 0; i < size; i++)
+		data[i] /= scalar;
+#endif
+
+	return *this;
+}
+
 void Matrix::CopyValuesTo(const Matrix& destination) const
 {
 #if SAFE
@@ -858,3 +914,4 @@ float Matrix::Min() const
 	}
 	return min;
 }
+

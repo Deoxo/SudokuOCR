@@ -95,7 +95,7 @@ namespace Imagery
 
 	Matrix* GetGaussianKernel(int size);
 
-	void Blur(const Matrix& m, Matrix& output, int strength);
+	Matrix* Blur(const Matrix& m, int strength);
 
 	void
 	AdaptiveThreshold(const Matrix& m, Matrix& output, int neighborhoodSize, float offset, float highValue,
@@ -166,13 +166,13 @@ namespace Imagery
 
 	void RotatePoint(const Point& pt, const Point& center, float angle, Point& res);
 
-	Square* RotateSquare(const Square* s, const Point* center, float angle);
+	Square* RotateSquare(const Square& s, const Point& center, float angle);
 
 	float Dist(const Point* pt1, const Point* pt2);
 
 	Point* ClosestEdgeFrom(const Square* s, const Point* pt);
 
-	Square* Order(const Square* s, int w, int h);
+	Square* Order(const Square& s, int w, int h);
 
 	// Function to extract the Sudoku region from the straightened image
 	Matrix*
@@ -192,9 +192,11 @@ namespace Imagery
 	Matrix*
 	ExtractBiggestPixelGroupAndCorners(const Matrix& img, int halfWindowSize, Square* corners, float target = 255);
 
-	std::list<QPoint> GetMainPixelsGroup(const Matrix& img, int halfWindowSize, float target = 255);
+	// Compute the distance between two points
+	[[nodiscard]] float Dist(const Point& pt1, const Point& pt2);
 
-	std::list<QPoint> AurelCornerDetection(std::list<QPoint>& points);
+	// Compute the distance between two points
+	[[nodiscard]] float Dist(const QPoint& a, const QPoint& b);
 }
 
 #endif //SUDOKUOCR_IMAGERY_H

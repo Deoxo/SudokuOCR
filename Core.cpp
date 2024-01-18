@@ -18,7 +18,7 @@ void DrawLines(const QString& imagePath, const QString& savePath, Line* cartesia
 	painter.setPen(QPen(Qt::red, 2));
 	for (int i = 0; i < numLines; ++i)
 	{
-		const float angle = lines[i].theta * 180 / M_PI;
+		const float angle = (float)lines[i].theta * 180.f / M_PIf;
 		if (angle <= 10)
 			painter.setPen(QPen(Qt::blue, 2));
 		else if (angle <= 90)
@@ -55,8 +55,7 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	StepCompletedWrapper(*eroded0, "1.2-eroded", savePath);
 
 	// Blur
-	Matrix* blurred = Matrix::CreateSameSize(*m);
-	Imagery::Blur(*eroded0, *blurred, 5);
+	Matrix* blurred = Imagery::Blur(*eroded0, 5);
 	StepCompletedWrapper(*blurred, "2-blurred", savePath);
 
 	// Binarize
@@ -108,7 +107,7 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	StepCompletedWrapper(*canny, "6.0-canny", savePath);
 
 	Square* bestSquare = new Square();
-	Matrix* mainPixels = Imagery::ExtractBiggestPixelGroupAndCorners(*canny, 3, bestSquare);
+	Matrix* mainPixels = GridDetection::ExtractBiggestPixelGroupAndCorners(*canny, 3, bestSquare);
 	StepCompletedWrapper(*mainPixels, "6.1-mainPixels", savePath);
 
 	// Get edges
@@ -167,7 +166,7 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 {
 	const int sw = detectionInfo->e->cols, sh = detectionInfo->e->rows;
 	const int squareSize = std::min(sw, sh);
-	Square desiredSquare = Imagery::GetDesiredEdges(*detectionInfo->bestSquare, -detectionInfo->angle, squareSize - 1);
+	Square desiredSquare = GridDetection::GetDesiredEdges(*detectionInfo->bestSquare, -detectionInfo->angle, squareSize - 1);
 	qDebug() << "Desired square";
 
 	// Extract the Sudoku from the image
@@ -189,7 +188,7 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	for (int i = 0; i < 81; ++i)
 		if (!emptyCells[i])
 			borderlessCells[i]->SaveAsImg(savePath, "10-" + QString::number(i / 10) + QString::number(i % 10) + "");
-	Matrix** cellsDigits = Imagery::ExtractAndCenterCellsDigits((const Matrix**) resizedCells, emptyCells);
+	Matrix** cellsDigits = GridDetection::ExtractAndCenterCellsDigits((const Matrix**) resizedCells, emptyCells);
 
 	// Digit recognition
 	Matrix* digits = new Matrix(9, 9);
@@ -204,7 +203,7 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 		const QString cellName = "11-" + QString::number(i / 10) + QString::number(i % 10) + "";
 		cellsDigits[i]->SaveAsImg(savePath, cellName);
 
-		*cellsDigits[i] *= 1.f / 255.f;
+		*cellsDigits[i] /= 255.f;
 		digits->data[i] = (float) nn->Predict(*cellsDigits[i]) + 1;
 	}
 

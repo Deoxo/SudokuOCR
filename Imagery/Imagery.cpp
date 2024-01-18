@@ -7,6 +7,7 @@
 #include <QDir>
 #include "../Tools/Settings.h"
 #include "Tools/FileManagement.h"
+#include "Tools/Math.h"
 #include <iostream>
 #include <stack>
 
@@ -29,12 +30,9 @@ namespace Imagery
 			for (int j = 0; j < cols; ++j)
 			{
 				QRgb pixel = image.pixel(j, i);
-				matrix->data[i * matrix->cols + j + 0 * matrix->matrixSize] =
-						static_cast<float>(qRed(pixel));   // Red channel
-				matrix->data[i * matrix->cols + j + 1 * matrix->matrixSize] =
-						static_cast<float>(qGreen(pixel)); // Green channel
-				matrix->data[i * matrix->cols + j + 2 * matrix->matrixSize] =
-						static_cast<float>(qBlue(pixel));  // Blue channel
+				matrix->data[i * matrix->cols + j + 0 * matrix->matrixSize] = (float) (qRed(pixel));   // Red channel
+				matrix->data[i * matrix->cols + j + 1 * matrix->matrixSize] = (float) (qGreen(pixel)); // Green channel
+				matrix->data[i * matrix->cols + j + 2 * matrix->matrixSize] = (float) (qBlue(pixel));  // Blue channel
 			}
 		}
 
@@ -45,8 +43,8 @@ namespace Imagery
 	{
 		Matrix* gray = new Matrix(m.rows, m.cols);
 		for (int i = 0; i < m.matrixSize; i++)
-			gray->data[i] = (float) (0.299 * m.data[i] + 0.587 * m.data[m.matrixSize + i] +
-									 0.114 * m.data[2 * m.matrixSize + i]);
+			gray->data[i] = (float)
+					(0.299 * m.data[i] + 0.587 * m.data[m.matrixSize + i] + 0.114 * m.data[2 * m.matrixSize + i]);
 		return gray;
 	}
 
@@ -54,7 +52,6 @@ namespace Imagery
 	{
 		Matrix* kernel = new Matrix(size, size);
 
-		float* gauss = kernel->data;
 		double sum = 0;
 		int i, j;
 
@@ -64,28 +61,25 @@ namespace Imagery
 			{
 				double x = i - (size - 1) / 2.0;
 				double y = j - (size - 1) / 2.0;
-				gauss[i * size + j] =
+				kernel->data[i * size + j] =
 						GAUSS_BLUR_K * exp(((pow(x, 2) + pow(y, 2)) / ((2 * pow(GAUSS_BLUR_SIGMA, 2)))) * (-1));
-				sum += gauss[i * size + j];
+				sum += kernel->data[i * size + j];
 			}
 		}
-		for (i = 0; i < size; i++)
-		{
-			for (j = 0; j < size; j++)
-			{
-				gauss[i * size + j] /= (float) sum;
-			}
-		}
+
+		*kernel /= (float) sum;
 
 		return kernel;
 	}
 
-	void Blur(const Matrix& m, Matrix& output, const int strength)
+	Matrix* Blur(const Matrix& m, const int strength)
 	{
 		Matrix* kernel = GetGaussianKernel(strength);
-		Matrix::ValidConvolution(m, *kernel, output);
+		Matrix* res = Matrix::ValidConvolution(m, *kernel);
 
 		delete kernel;
+
+		return res;
 	}
 
 	void
@@ -94,8 +88,7 @@ namespace Imagery
 	{
 		// Adaptive threshold with gaussian weighted sum of the neighbourhood values
 		Matrix* kernel = GetGaussianKernel(neighborhoodSize);
-		Matrix* thresh = Matrix::CreateSameSize(m);
-		Matrix::ValidConvolution(m, *kernel, *thresh);
+		Matrix* thresh = Matrix::ValidConvolution(m, *kernel);
 		for (int i = 0; i < output.matrixSize; i++)
 			output.data[i] = m.data[i] > thresh->data[i] - offset ? highValue : lowValue;
 
@@ -221,8 +214,7 @@ namespace Imagery
 	void Canny(const Matrix& m, Matrix& output, const float lowThreshold, const float highThreshold)
 	{
 		// Canny edge detection algorithm
-		Matrix* blurred = Matrix::CreateSameSize(m);
-		Blur(m, *blurred, 5);
+		Matrix* blurred = Blur(m, 5);
 		Matrix** gradients = GetGradients(*blurred);
 		*gradients[0] *= 255.f / gradients[0]->Max();
 		Matrix* nonMaxSuppressed = Matrix::CreateSameSize(m);
@@ -244,18 +236,12 @@ namespace Imagery
 	Matrix** GetGradients(const Matrix& m)
 	{
 		// Build the kernels
-		Matrix horizontalKernel(3, 3);
-		Matrix verticalKernel(3, 3);
-		const float horizontalKernelData[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
-		const float verticalKernelData[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
-		memcpy(horizontalKernel.data, horizontalKernelData, sizeof(float) * 9);
-		memcpy(verticalKernel.data, verticalKernelData, sizeof(float) * 9);
+		Matrix horizontalKernel(3, 3, {-1, 0, 1, -2, 0, 2, -1, 0, 1});
+		Matrix verticalKernel(3, 3, {-1, -2, -1, 0, 0, 0, 1, 2, 1});
 
 		// Convolve the kernels with the matrix
-		Matrix* ix = Matrix::CreateSameSize(m);
-		Matrix* iy = Matrix::CreateSameSize(m);
-		Matrix::ValidConvolution(m, horizontalKernel, *ix);
-		Matrix::ValidConvolution(m, verticalKernel, *iy);
+		Matrix* ix = Matrix::ValidConvolution(m, horizontalKernel);;
+		Matrix* iy = Matrix::ValidConvolution(m, verticalKernel);
 
 		// Create the gradients array
 		Matrix** gradients = new Matrix* [2];
@@ -336,12 +322,7 @@ namespace Imagery
 		for (int i = 0; i < m.matrixSize; i++)
 		{
 			const float v = m.data[i];
-			if (v < lowThreshold)
-				output.data[i] = 0;
-			else if (v > highThreshold)
-				output.data[i] = 255;
-			else
-				output.data[i] = 127;
+			output.data[i] = v < lowThreshold ? 0.f : (v > highThreshold ? 255.f : 127.f);
 		}
 	}
 
@@ -387,8 +368,8 @@ namespace Imagery
 		float* sinTable = new float[180];
 		for (int i = 0; i < 180; i++)
 		{
-			cosTable[i] = std::cos((float) i * (float) M_PI / 180);
-			sinTable[i] = std::sin((float) i * (float) M_PI / 180);
+			cosTable[i] = std::cos((float) i * M_PIf / 180);
+			sinTable[i] = std::sin((float) i * M_PIf / 180);
 		}
 
 		// Fill the accumulator
@@ -409,20 +390,6 @@ namespace Imagery
 			}
 		}
 
-		// Draw hough space in a surface and save it to a file
-		/*SDL_Surface* surface = SDL_CreateRGBSurface(0, accumulatorCols, accumulatorRows, 32, 0, 0, 0, 0);
-		for (int rho = 0; rho < accumulatorRows; rho++)
-		{
-			for (int theta = 0; theta < accumulatorCols; theta++)
-			{
-				const int v = (int)MatGetValueAt(accumulator, rho, theta);
-				Uint32 color = SDL_MapRGB(surface->format, v, v, v);
-				((Uint32*)surface->pixels)[rho * accumulatorCols + theta] = color;
-			}
-		}
-		SDL_SaveBMP(surface, "hough.bmp");
-		SDL_FreeSurface(surface);*/
-
 		// Free the memory
 		delete[] cosTable;
 		delete[] sinTable;
@@ -440,9 +407,6 @@ namespace Imagery
 		const int maxIter = 100;
 		int iters = 0;
 		int changed = 1;
-
-		/*for (int i = 0; i < dataLength; i++)
-			printf("angle: %i\n", data[i]);*/
 
 		while (changed && iters < maxIter)
 		{
@@ -495,12 +459,7 @@ namespace Imagery
 					clusterCenters[1] = newCenter2;
 				}
 			}
-
-			/* printf("c1: %f c2: %f\n", clusterCenters[0], clusterCenters[1]);
-			 printf("c1: %i c2: %i\n", cluster1Length, cluster2Length);*/
 		}
-
-		// print clusters
 
 		for (int i = 0; i < dataLength; i++)
 		{
@@ -530,6 +489,8 @@ namespace Imagery
 			if (lines[i].theta == INFINITY || lines[i].theta < 0 || lines[i].theta > 180)
 				continue;
 			angles[i] = (int) (lines[i].theta * 180 / M_PI); // convert to degrees
+
+			// Remap angle to [-45, 45]
 			if (angles[i] > 90)
 			{
 				if (angles[i] > 135)
@@ -602,12 +563,8 @@ namespace Imagery
 
 	void SobelEdgeDetector(const Matrix& m, Matrix& output)
 	{
-		const float sobel_x[3][3] = {{-1, 0, 1},
-									 {-2, 0, 2},
-									 {-1, 0, 1}};
-		const float sobel_y[3][3] = {{-1, -2, -1},
-									 {0,  0,  0},
-									 {1,  2,  1}};
+		const Matrix sobel_x(3, 3, {-1, 0, 1, -2, 0, 2, -1, 0, 1});
+		const Matrix sobel_y(3, 3, {-1, -2, -1, 0, 0, 0, 1, 2, 1});
 
 		const int width = m.cols;
 		const int height = m.rows;
@@ -621,8 +578,8 @@ namespace Imagery
 				{
 					for (int i = -1; i <= 1; i++)
 					{
-						gx += m.data[(y + j) * width + (x + i)] * sobel_x[j + 1][i + 1];
-						gy += m.data[(y + j) * width + (x + i)] * sobel_y[j + 1][i + 1];
+						gx += m.data[(y + j) * width + (x + i)] * sobel_x.data[(j + 1) * 3 + i + 1];
+						gy += m.data[(y + j) * width + (x + i)] * sobel_y.data[(j + 1) * 3 + i + 1];
 					}
 				}
 				output.data[y * width + x] = sqrtf(gx * gx + gy * gy);
@@ -643,6 +600,7 @@ namespace Imagery
 		int count;
 		int x1, y1, x2, y2;
 
+		// Compute integral image
 		for (int y = 0; y < height; y++)
 		{
 			sum += m.data[0 * m.cols + y];
@@ -659,6 +617,7 @@ namespace Imagery
 			}
 		}
 
+		// Compute threshold
 		for (int i = 0; i < width; i++)
 		{
 			for (int j = 0; j < height; j++)
@@ -804,6 +763,7 @@ namespace Imagery
 		return res / (float) img.matrixSize;
 	}
 
+	// Compute the dispersion of the image (ie if there is a lot of small (less than 128) differences between pixels)
 	float Dispersion(const Matrix& in)
 	{
 		float res = 0;
@@ -837,11 +797,10 @@ namespace Imagery
 		const int cropSize = (int) ((float) cellSize * (float) cropPercentage / 100.f);
 		const int croppedCellSize = cellSize - 2 * cropSize;
 		Matrix** croppedCells = new Matrix* [numCells];
-		for (int i = 0; i < numCells; ++i)
-			croppedCells[i] = new Matrix(croppedCellSize, croppedCellSize);
 
 		for (int i = 0; i < numCells; ++i)
 		{
+			croppedCells[i] = new Matrix(croppedCellSize, croppedCellSize);
 			for (int x = cropSize; x < cellSize - cropSize; ++x)
 			{
 				for (int y = cropSize; y < cellSize - cropSize; ++y)
@@ -922,11 +881,10 @@ namespace Imagery
 		const int cellSize = cells[0]->cols;
 		const int resizedCellSize = 28;
 		Matrix** resizedCells = new Matrix* [numCells];
-		for (int i = 0; i < numCells; ++i)
-			resizedCells[i] = new Matrix(resizedCellSize, resizedCellSize);
 
 		for (int i = 0; i < numCells; ++i)
 		{
+			resizedCells[i] = new Matrix(resizedCellSize, resizedCellSize);
 			for (int x = 0; x < resizedCellSize; ++x)
 			{
 				for (int y = 0; y < resizedCellSize; ++y)
@@ -1003,54 +961,6 @@ namespace Imagery
 		}
 	}
 
-	Matrix** ExtractAndCenterCellsDigits(const Matrix** cells, const bool* emptyCells)
-	{
-		Matrix** centeredCells = new Matrix* [81];
-		for (int i = 0; i < 81; ++i)
-		{
-			centeredCells[i] = new Matrix(28, 28);
-
-			// Skip empty cells
-			if (emptyCells[i])
-			{
-				cells[i]->CopyValuesTo(*centeredCells[i]);
-				continue;
-			}
-
-			// Get the main group of pixels
-			std::list<QPoint> mainPoints = GetMainPixelsGroup(*cells[i], 2);
-
-			// Compute the center of the digit
-			int minX = 28, maxX = 0, minY = 28, maxY = 0;
-			for (const QPoint& p : mainPoints)
-			{
-				const int x = p.x();
-				const int y = p.y();
-				centeredCells[i]->data[y * centeredCells[i]->cols + x] = 255;
-				if (x < minX)
-					minX = x;
-				if (x > maxX)
-					maxX = x;
-				if (y < minY)
-					minY = y;
-				if (y > maxY)
-					maxY = y;
-			}
-			const int centerCol = (int) ((float) (minX + maxX) / 2.f);
-			const int centerRow = (int) ((float) (minY + maxY) / 2.f);
-
-			// Compute the offset to center the digit
-			const int offsetCol = 14 - centerCol;
-			const int offsetRow = 14 - centerRow;
-
-			// Center the digit
-			HorizontalOffset(*centeredCells[i], offsetCol);
-			VerticalOffset(*centeredCells[i], offsetRow);
-		}
-
-		return centeredCells;
-	}
-
 
 	// Delete a pixel and recursively delete its neighbors within a given window if they are white.
 	void
@@ -1079,6 +989,7 @@ namespace Imagery
 		}
 	}
 
+	// Remove lines of a Sudoku by recursively removing neighbor pixels along the borders of the image
 	void RemoveLines(Matrix& img)
 	{
 		const int halfWindowSize = std::min(1, std::min(img.cols, img.rows) / 300);
@@ -1110,29 +1021,6 @@ namespace Imagery
 			for (int j = 0; j < matrix.cols; j++)
 				res->data[i * res->cols + j] = 0;
 
-		/*double dx = sqrt(pow(s.topRight.x - s.topLeft.x, 2) + pow(s.topRight.x - s.topLeft.x, 2));
-		double dy = sqrt(pow(s.bottomLeft.x - s.topLeft.x, 2) + pow(s.bottomLeft.x - s.topLeft.x, 2));
-		double du = (dx + dy) / 2;
-
-		int sx = (s.topLeft.y - center_x) * cos_val - (s.topLeft.x - center_y) * sin_val + center_x;
-		int sy = (s.topLeft.y - center_x) * sin_val + (s.topLeft.x - center_y) * cos_val + center_y;*/
-		//printf("%f\n", sx);
-		//printf("%f\n", sy);
-
-		/*for (int x = 0; x < dx; x++)
-		{
-			for (int y = 0; y < dy; y++)
-			{
-				int mx = x + sx;
-				int my = y + sy;
-				double new_x = (my - center_x) * cos_val - (mx - center_y) * sin_val + center_x;
-				double new_y = (my - center_x) * sin_val + (mx - center_y) * cos_val + center_y;
-
-				if (0 <= new_x && new_x < matrix->cols && 0 <= new_y && new_y < matrix->rows)
-					MatSetValueAt(res, x, y, MatGetValueAt(matrix, (int)new_y, (int)new_x));
-			}
-		}*/
-
 		for (int i = 0; i < matrix.rows; i++)
 		{
 			for (int j = 0; j < matrix.cols; j++)
@@ -1148,18 +1036,13 @@ namespace Imagery
 			}
 		}
 
-		/*printf("hi\n");
-		Matrix* realRes = new Matrix((int)dx, (int)dy);
-		for (int i = 0; i < (int)dx; i++)
-			for (int j = 0; j < (int)dy; j++)
-				MatSetValueAt(realRes, i, j, MatGetValueAt(res, sx + j, sy + i));
-		printf("bye\n");*/
 		return res;
 	}
 
+	// Compute the rotated coordinates of a point around another point
 	void RotatePoint(const Point& pt, const Point& center, const float angle, Point& res)
 	{
-		const float radians = angle * (float) M_PI / 180.0f;
+		const float radians = angle * M_PIf / 180.0f;
 		const float ptxf = (float) (pt.x);
 		const float ptyf = (float) (pt.y);
 		const float ctxf = (float) (center.x);
@@ -1171,6 +1054,7 @@ namespace Imagery
 		res.y = rotated_y;
 	}
 
+	// Rotate the vertices of a square by a certain angle around a given point
 	Square* RotateSquare(const Square& s, const Point& center, const float angle)
 	{
 		Square* res = new Square();
@@ -1181,12 +1065,7 @@ namespace Imagery
 		return res;
 	}
 
-	float Dist(const Point& pt1, const Point& pt2)
-	{
-		return std::sqrt(
-				std::pow<float, float>(pt1.x - pt2.x, 2) + powf(pt1.y - pt2.y, 2)); // NOLINT(*-narrowing-conversions)
-	}
-
+	// Compute the vertex of a square that is the closest from a given point
 	Point* ClosestEdgeFrom(const Square& s, const Point& pt)
 	{
 		Point* res = new Point(pt);
@@ -1216,6 +1095,7 @@ namespace Imagery
 		return res;
 	}
 
+	// Approximately order the vertices of a square
 	Square* Order(const Square& s, const int w, const int h)
 	{
 		Square* res = (Square*) malloc(sizeof(Square));
@@ -1238,50 +1118,7 @@ namespace Imagery
 		return res;
 	}
 
-	// Extract the Sudoku region from the straightened image
-	Matrix*
-	ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, const float rotationAngle)
-	{
-		const Point squareCenter = (Point) {
-				(sudokuEdges.topLeft.x + sudokuEdges.topRight.x + sudokuEdges.bottomLeft.x +
-				 sudokuEdges.bottomRight.x) / 4,
-				(sudokuEdges.topLeft.y + sudokuEdges.topRight.y + sudokuEdges.bottomLeft.y +
-				 sudokuEdges.bottomRight.y) / 4};
-		Square* rotatedSquare1 = RotateSquare(sudokuEdges, squareCenter, rotationAngle);
-		Square* rotatedSquare = Order(*rotatedSquare1, straightImage.cols, straightImage.rows);
-		delete rotatedSquare1;
-
-		printf("stopLeft: %i %i\n", rotatedSquare->topLeft.x, rotatedSquare->topLeft.y);
-		printf("stopRight: %i %i\n", rotatedSquare->topRight.x, rotatedSquare->topRight.y);
-		printf("sbottomLeft: %i %i\n", rotatedSquare->bottomLeft.x, rotatedSquare->bottomLeft.y);
-		printf("sbottomRight: %i %i\n", rotatedSquare->bottomRight.x, rotatedSquare->bottomRight.y);
-
-		const int sudoku_width = abs(rotatedSquare->topRight.x - rotatedSquare->topLeft.x);
-		const int sudoku_height = abs(rotatedSquare->bottomLeft.y - rotatedSquare->topLeft.y);
-		Matrix* result = new Matrix(sudoku_height, sudoku_width);
-
-		for (int y = 0; y < sudoku_height; y++)
-		{
-			for (int x = 0; x < sudoku_width; x++)
-			{
-				// Map coordinates from the original Sudoku edges to the rotated image
-				Point rotatedPoint = {rotatedSquare->topLeft.x + x, rotatedSquare->topLeft.y + y};
-
-				// Get pixel value from the straightened image and set it in the result matrix
-				const float pixelValue =
-						rotatedPoint.x < 0 || rotatedPoint.y < 0 || rotatedPoint.x >= straightImage.cols ||
-						rotatedPoint.y >= straightImage.rows ? 0
-															 : straightImage.data[rotatedPoint.y * straightImage.cols +
-																				  rotatedPoint.x];
-				result->data[y * result->cols + x] = pixelValue;
-			}
-		}
-
-		delete rotatedSquare;
-
-		return result;
-	}
-
+	// Split the Sudoku in 81 cells
 	Matrix** Split(const Matrix& matrix)
 	{
 		Matrix** res = new Matrix* [81];
@@ -1303,92 +1140,6 @@ namespace Imagery
 		}
 
 		return res;
-	}
-
-	// Solve a system of linear equations using Gaussian Elimination with Partial Pivoting
-	Matrix* GaussianElimination(const Matrix& a, const Matrix& b, const int n)
-	{
-		// Check if the matrices are compatible
-		if (a.rows != n || a.cols != n || b.rows != n || b.cols != 1)
-			throw std::runtime_error("Invalid input");
-
-		Matrix* res = new Matrix(n, 1);
-
-		int i, j, k;
-
-		// Forward Elimination with Partial Pivoting
-		for (i = 0; i < n; i++)
-		{
-			// Partial Pivoting: Find the maximum element in the pivot column
-			int pivotRow = i;
-			for (j = i + 1; j < n; j++)
-			{
-				if (std::abs(a.data[j * n + i]) > std::abs(a.data[pivotRow * n + i]))
-					pivotRow = j;
-			}
-
-			// Swap rows if needed
-			if (pivotRow != i)
-			{
-				for (k = 0; k < n; k++)
-					std::swap(a.data[i * n + k], a.data[pivotRow * n + k]);
-
-				std::swap(b.data[i], b.data[pivotRow]);
-			}
-
-			// Check for a zero pivot (avoid division by zero)
-			if (a.data[i * n + i] == 0.0)
-			{
-				// Handle zero pivot (potentially return an error code)
-				delete res;
-				throw std::runtime_error("Invalid input");
-			}
-
-			// Perform forward elimination with the non-zero pivot
-			for (j = i + 1; j < n; j++)
-			{
-				const float ratio = a.data[j * n + i] / a.data[i * n + i];
-				for (k = 0; k < n; k++)
-					a.data[j * n + k] -= ratio * a.data[i * n + k];
-
-				b.data[j] -= ratio * b.data[i];
-			}
-		}
-
-		// Back Substitution
-		for (i = n - 1; i >= 0; i--)
-		{
-			res->data[i] = b.data[i];
-			for (j = i + 1; j < n; j++)
-				res->data[i] -= a.data[i * n + j] * res->data[j];
-
-			res->data[i] /= a.data[i * n + i];
-		}
-
-		return res;
-	}
-
-	// Compute the inverse of a 3x3 matrix by dividing the adjoint by the determinant
-	Matrix* Get3x3MatrixInverse(const Matrix& m)
-	{
-		const float det = m.data[0] * (m.data[4] * m.data[8] - m.data[5] * m.data[7]) -
-						  m.data[1] * (m.data[3] * m.data[8] - m.data[5] * m.data[6]) +
-						  m.data[2] * (m.data[3] * m.data[7] - m.data[4] * m.data[6]);
-
-		Matrix* inv = new Matrix(3, 3);
-		inv->data[0] = m.data[4] * m.data[8] - m.data[5] * m.data[7];
-		inv->data[1] = m.data[2] * m.data[7] - m.data[1] * m.data[8];
-		inv->data[2] = m.data[1] * m.data[5] - m.data[2] * m.data[4];
-		inv->data[3] = m.data[5] * m.data[6] - m.data[3] * m.data[8];
-		inv->data[4] = m.data[0] * m.data[8] - m.data[2] * m.data[6];
-		inv->data[5] = m.data[2] * m.data[3] - m.data[0] * m.data[5];
-		inv->data[6] = m.data[3] * m.data[7] - m.data[4] * m.data[6];
-		inv->data[7] = m.data[1] * m.data[6] - m.data[0] * m.data[7];
-		inv->data[8] = m.data[0] * m.data[4] - m.data[1] * m.data[3];
-
-		*inv *= 1.f / det;
-
-		return inv;
 	}
 
 	// Builds a perspective matrix that maps the sudoku edges to the desired edges
@@ -1481,79 +1232,10 @@ namespace Imagery
 		b.data[7] = dBry;
 
 		// Solve the system of linear equations
-		Matrix* solution = GaussianElimination(a, b, 8);
+		Matrix* solution = Math::GaussianElimination(a, b, 8);
 		Matrix* res = new Matrix(3, 3);
 		std::copy(solution->data, solution->data + 8, res->data);
 		res->data[8] = 1;
-
-		return res;
-	}
-
-	QPoint RotateQPoint(const QPoint& point, const QPoint& center, const float angleDegrees)
-	{
-		const qreal angleRadians = qDegreesToRadians(angleDegrees);
-		const int rotatedX = qRound(center.x() + (point.x() - center.x()) * qCos(angleRadians) -
-									(point.y() - center.y()) * qSin(angleRadians));
-		const int rotatedY = qRound(center.y() + (point.x() - center.x()) * qSin(angleRadians) +
-									(point.y() - center.y()) * qCos(angleRadians));
-
-		return {rotatedX, rotatedY};
-	}
-
-	// Returns the index of the closest point to the target point
-	int ClosestPointIndex(const QPoint points[4], const QPoint& target)
-	{
-		int index = 0;
-		qreal minDist = QLineF(points[0], target).length();
-		for (int i = 1; i < 4; ++i)
-		{
-			const qreal dist = QLineF(points[i], target).length();
-			if (dist < minDist)
-			{
-				index = i;
-				minDist = dist;
-			}
-		}
-
-		return index;
-	}
-
-	Square GetDesiredEdges(const Square& sudokuEdges, const float angle, const int outputSize)
-	{
-		// Load points with qt
-		QPoint perspectivePoints[4];
-		QPoint correctedPoints[4];
-		perspectivePoints[0] = (QPoint) sudokuEdges.topLeft;
-		perspectivePoints[1] = (QPoint) sudokuEdges.topRight;
-		perspectivePoints[2] = (QPoint) sudokuEdges.bottomLeft;
-		perspectivePoints[3] = (QPoint) sudokuEdges.bottomRight;
-
-		// Find the center
-		QPoint center =
-				(perspectivePoints[0] + perspectivePoints[1] + perspectivePoints[2] + perspectivePoints[3]) / 4.0;
-
-		// Rotate all points around the center to make the sudoku edges parallel to the image edges
-		for (int i = 0; i < 4; i++)
-			correctedPoints[i] = RotateQPoint(perspectivePoints[i], center, angle);
-
-		// Find the closest point to each corner of the image
-		const int topLeftIndex = ClosestPointIndex(correctedPoints, {0, 0});
-		const int topRightIndex = ClosestPointIndex(correctedPoints, {outputSize, 0});
-		const int bottomLeftIndex = ClosestPointIndex(correctedPoints, {0, outputSize});
-		const int bottomRightIndex = ClosestPointIndex(correctedPoints, {outputSize, outputSize});
-
-		// Set the desired edges
-		correctedPoints[topLeftIndex] = {0, 0};
-		correctedPoints[topRightIndex] = {outputSize, 0};
-		correctedPoints[bottomLeftIndex] = {0, outputSize};
-		correctedPoints[bottomRightIndex] = {outputSize, outputSize};
-
-		// Return the desired edges
-		Square res;
-		res.topLeft = Point(correctedPoints[0]);
-		res.topRight = Point(correctedPoints[1]);
-		res.bottomLeft = Point(correctedPoints[2]);
-		res.bottomRight = Point(correctedPoints[3]);
 
 		return res;
 	}
@@ -1587,7 +1269,7 @@ namespace Imagery
 	{
 		// Compute perspective matrices
 		Matrix* perspectiveMatrix = BuildPerspectiveMatrix(sudokuEdges, desiredEdges);
-		Matrix* inversePerspectiveMatrix = Get3x3MatrixInverse(*perspectiveMatrix);
+		Matrix* inversePerspectiveMatrix = Math::Get3x3MatrixInverse(*perspectiveMatrix);
 
 		// Apply the perspective transformation
 		Matrix* res = new Matrix(squareSize, squareSize);
@@ -1612,7 +1294,9 @@ namespace Imagery
 		return res;
 	}
 
-	void FloodFill(Matrix& img, QPoint pos, const int halfWindowSize, std::list<QPoint>& group, const float target)
+	void
+	FloodFill(Matrix& img, QPoint pos, const int halfWindowSize, std::list<QPoint>& group, // NOLINT(*-no-recursion)
+			  const float target)
 	{
 		if (pos.x() < 0 || pos.x() >= img.cols || pos.y() < 0 || pos.y() >= img.rows)
 			return;
@@ -1636,102 +1320,11 @@ namespace Imagery
 		return std::sqrt(dx * dx + dy * dy);
 	}
 
-	QPoint GetFarthestPointFromAnchors(std::list<QPoint>& anchors, const std::list<QPoint>& pts)
+	[[nodiscard]] float Dist(const Point& a, const Point& b)
 	{
-		int maxIndex = 0;
-		float maxDistSum = 0;
-		int i = 0;
-		for (const QPoint& p : pts)
-		{
-			float distsSum = 0;
-			for (const QPoint& anchor : anchors)
-				distsSum += Dist(p, anchor);
-			if (distsSum >= maxDistSum)
-			{
-				maxDistSum = distsSum;
-				maxIndex = i;
-			}
-			i++;
-		}
+		const float dx = (float) (a.x - b.x);
+		const float dy = (float) (a.y - b.y);
 
-		return *std::next(pts.begin(), maxIndex);
-	}
-
-	Matrix*
-	ExtractBiggestPixelGroupAndCorners(const Matrix& img, const int halfWindowSize, Square* corners, const float target)
-	{
-		Matrix* res = Matrix::CreateSameSize(img);
-
-		// Group with most elements
-		std::list<QPoint> mainGroup = GetMainPixelsGroup(img, halfWindowSize, target);
-
-		// Write the main group to the result matrix
-		for (const QPoint& pixel : mainGroup)
-			res->data[pixel.y() * res->cols + pixel.x()] = target;
-
-		// Find the corners
-		std::list<QPoint> aurelCorners = AurelCornerDetection(mainGroup);
-
-		// Write the corners to the result square
-		corners->topLeft = Point(*std::next(aurelCorners.begin(), 0));
-		corners->topRight = Point(*std::next(aurelCorners.begin(), 1));
-		corners->bottomLeft = Point(*std::next(aurelCorners.begin(), 2));
-		corners->bottomRight = Point(*std::next(aurelCorners.begin(), 3));
-
-		return res;
-	}
-
-	std::list<QPoint> GetMainPixelsGroup(const Matrix& img, int halfWindowSize, float target)
-	{
-		Matrix* tmp = Matrix::CreateSameSize(img);
-		img.CopyValuesTo(*tmp);
-		// Find all pixel groups
-		std::list<std::list<QPoint>> pixelGroups;
-		for (int y = 0; y < tmp->rows; ++y)
-		{
-			for (int x = 0; x < tmp->cols; ++x)
-			{
-				if (tmp->data[y * tmp->cols + x] == 255)
-				{
-					std::list<QPoint> group;
-					Imagery::FloodFill(*tmp, QPoint(x, y), halfWindowSize, group, target);
-					pixelGroups.push_back(group);
-				}
-			}
-		}
-
-		// Group with most elements
-		std::list<QPoint>& mainGroup = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
-														 [](const std::list<QPoint>& a, const std::list<QPoint>& b)
-														 {
-															 return a.size() < b.size();
-														 });
-
-		delete tmp;
-		return mainGroup;
-	}
-
-	std::list<QPoint> AurelCornerDetection(std::list<QPoint>& points)
-	{
-		std::list<QPoint> anchors = {points.front()};
-
-		QPoint corner1 = GetFarthestPointFromAnchors(anchors, points);
-		anchors.remove(anchors.front());
-		points.remove(corner1);
-		anchors.push_back(corner1);
-
-		QPoint corner2 = GetFarthestPointFromAnchors(anchors, points);
-		points.remove(anchors.front());
-		anchors.push_back(corner2);
-
-		QPoint corner3 = GetFarthestPointFromAnchors(anchors, points);
-		points.remove(anchors.front());
-		anchors.push_back(corner3);
-
-		QPoint corner4 = GetFarthestPointFromAnchors(anchors, points);
-		points.remove(anchors.front());
-		anchors.push_back(corner4);
-
-		return anchors;
+		return std::sqrt(dx * dx + dy * dy);
 	}
 }
