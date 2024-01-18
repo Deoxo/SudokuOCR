@@ -149,23 +149,21 @@ void MainWindow::OnDigitsRecognized(const Matrix* digits)
 
 void MainWindow::OnDigitModified()
 {
-	Matrix* board = new Matrix(9, 9, 1);
+	Matrix board(9, 9);
 	for (int i = 0; i < 81; ++i)
-		board->data[i] = (float) spinBoxes[i]->value();
+		board.data[i] = (float) spinBoxes[i]->value();
 
-	Matrix* result = Solver::Solve(*board);
+	Matrix* result = Solver::Solve(board);
 	if (result != nullptr)
-	{
 		ui->validateButton_4->setEnabled(true);
-		delete result;
-	}
 	else ui->validateButton_4->setEnabled(false);
+	delete result;
 }
 
 void MainWindow::OnAllDigitsValidated()
 {
 	setWindowTitle("SudokuOCR - Result");
-	Matrix* board = new Matrix(9, 9, 1);
+	Matrix* board = new Matrix(9, 9);
 	for (int i = 0; i < 81; ++i)
 		board->data[i] = (float) spinBoxes[i]->value();
 

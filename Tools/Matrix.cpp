@@ -32,6 +32,7 @@ Matrix::Matrix(const int rows, const int cols, const int dims)
 #else
 	this->data = new float[size];
 #endif
+	std::fill(data, data + size, 0);
 }
 
 void Matrix::Convolution(const Matrix& filter, Matrix& output) const
@@ -234,7 +235,7 @@ void Matrix::TransposeFullConvolution(const Matrix& m, const Matrix& filter, Mat
 
 Matrix* Matrix::CreateSameSize(const Matrix& m)
 {
-	return new Matrix(m.rows, m.cols, 1);
+	return new Matrix(m.rows, m.cols);
 }
 
 void Matrix::Print() const
@@ -836,7 +837,7 @@ void Matrix::WriteToBinaryFile(FILE* file) const
 	mm->data += off;
 }
 
-float Matrix::Max()
+float Matrix::Max() const
 {
 	float max = -INFINITY;
 	for (int i = 0; i < matrixSize; i++)
@@ -845,4 +846,15 @@ float Matrix::Max()
 			max = data[i];
 	}
 	return max;
+}
+
+float Matrix::Min() const
+{
+	float min = INFINITY;
+	for (int i = 0; i < matrixSize; i++)
+	{
+		if (data[i] < min)
+			min = data[i];
+	}
+	return min;
 }

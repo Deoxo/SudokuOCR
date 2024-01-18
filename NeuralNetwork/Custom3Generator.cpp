@@ -10,37 +10,37 @@
 
 char* FileName(const char* path)
 {
-    int fileLen = 0;
-    const int pathLen = (int) strlen(path);
-    int i = pathLen - 1;
-    while (path[i] != '/' && i >= 0)
-    {
-        fileLen++;
-        i--;
-    }
-    int extensionLen = 1;
-    i = pathLen - 1;
-    while (path[i] != '.' && i >= 0)
-    {
-        extensionLen++;
-        i--;
-    }
-    char* fileName = (char*) malloc(sizeof(char) * (fileLen - extensionLen + 1));
-    strncpy(fileName, path + pathLen - fileLen, fileLen - extensionLen);
-    fileName[fileLen] = '\0';
-    return fileName;
+	int fileLen = 0;
+	const int pathLen = (int) strlen(path);
+	int i = pathLen - 1;
+	while (path[i] != '/' && i >= 0)
+	{
+		fileLen++;
+		i--;
+	}
+	int extensionLen = 1;
+	i = pathLen - 1;
+	while (path[i] != '.' && i >= 0)
+	{
+		extensionLen++;
+		i--;
+	}
+	char* fileName = (char*) malloc(sizeof(char) * (fileLen - extensionLen + 1));
+	strncpy(fileName, path + pathLen - fileLen, fileLen - extensionLen);
+	fileName[fileLen] = '\0';
+	return fileName;
 }
 
 // Removes all the files in a folder but not the folder itself
 void ClearFolder(const char* path)
 {
-    char* command = (char*) malloc(sizeof(char) * (strlen(path) + 9));
-    strcpy(command, "rm -rf ");
-    strcat(command, path);
-    strcat(command, "*");
-    if (system(command) != 0)
-        errx(EXIT_FAILURE, "Error while clearing folder %s", path);
-    free(command);
+	char* command = (char*) malloc(sizeof(char) * (strlen(path) + 9));
+	strcpy(command, "rm -rf ");
+	strcat(command, path);
+	strcat(command, "*");
+	if (system(command) != 0)
+		errx(EXIT_FAILURE, "Error while clearing folder %s", path);
+	free(command);
 }
 
 DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePath)
@@ -152,13 +152,6 @@ DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePat
 		return nullptr;
 	}
 
-	QPoint* vertices = new QPoint[] {
-			(QPoint)bestSquare->topLeft,
-			(QPoint)bestSquare->bottomRight,
-			(QPoint)bestSquare->topRight,
-			(QPoint)bestSquare->bottomLeft
-	};
-
 	DetectionInfo* detectionInfo = new DetectionInfo();
 
 	detectionInfo->bestSquare = bestSquare;
@@ -194,7 +187,6 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 	// Extract the Sudoku from the image
 	Matrix* perspective = Imagery::PerspectiveTransform(*detectionInfo->e, *detectionInfo->bestSquare,
 														desiredSquare, squareSize);
-	perspective->SaveAsImg(savePath, "8-perspective");
 	qDebug() << "8-perspective";
 	Imagery::RemoveLines(*perspective);
 	qDebug() << "9-removedLines";
@@ -204,16 +196,16 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 	Matrix** borderlessCells = Imagery::CropBorders((const Matrix**) cells, BORDER_CROP_PERCENTAGE);
 	Matrix** resizedCells = Imagery::ResizeCellsTo28x28((const Matrix**) borderlessCells);
 	bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) resizedCells, EMPTY_CELL_THRESHOLD);
-	Matrix** centeredCells = Imagery::CenterCells((const Matrix**) resizedCells, emptyCells);
+	Matrix** centeredCells = Imagery::ExtractAndCenterCellsDigits((const Matrix**) resizedCells, emptyCells);
 
 	// Digit recognition
-	Matrix* digits = new Matrix(9, 9, 1);
+	Matrix digits(9, 9);
 	NeuralNetwork* nn = NeuralNetwork::LoadFromFile("./nn.bin");
 	for (int i = 0; i < 81; i++)
 	{
 		if (emptyCells[i])
 		{
-			digits->data[i] = 0;
+			digits.data[i] = 0;
 			continue;
 		}
 		char* cellName = (char*) malloc(sizeof(char) * 40);
@@ -221,7 +213,7 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 		centeredCells[i]->SaveAsImg(savePath, cellName);
 
 		*centeredCells[i] *= 1.f / 255.f;
-		digits->data[i] = (float) nn->Predict(*centeredCells[i]) + 1;
+		digits.data[i] = (float) nn->Predict(*centeredCells[i]) + 1;
 	}
 
 	// Free memory
@@ -244,78 +236,76 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 
 int countLines(const char* filename)
 {
-    FILE* file;
-    int count = 0;
-    char c;
+	FILE* file;
+	int count = 0;
+	char c;
 
-    file = fopen(filename, "r"); // Open the file in read mode
+	file = fopen(filename, "r"); // Open the file in read mode
 
-    if (file == NULL)
-    {
-        printf("Unable to open the file.\n");
-        return -1; // Return -1 to indicate an error
-    }
+	if (file == NULL)
+	{
+		printf("Unable to open the file.\n");
+		return -1; // Return -1 to indicate an error
+	}
 
-    // Count the number of lines
-    while ((c = fgetc(file)) != EOF)
-    {
-        if (c == '\n')
-        {
-            count++;
-        }
-    }
+	// Count the number of lines
+	while ((c = fgetc(file)) != EOF)
+	{
+		if (c == '\n')
+		{
+			count++;
+		}
+	}
 
-    // Increment count if the file doesn't end with a newline but contains text
-    if (count > 0)
-    {
-        count++;
-    }
+	// Increment count if the file doesn't end with a newline but contains text
+	if (count > 0)
+	{
+		count++;
+	}
 
-    fclose(file); // Close the file
+	fclose(file); // Close the file
 
-    return count;
+	return count;
 }
 
-// Todo: Finish auto rotation
-// Todo: Link NN output with solver
 /*int main(int argc, char** argv)
 {
-    // Builds the folders to save the results
-    char savePath[] = "../datasets/custom3/";
-    ClearFolder(savePath);
+	// Builds the folders to save the results
+	char savePath[] = "../datasets/custom3/";
+	ClearFolder(savePath);
 
-    int i = 0;
-    FILE* file;
-    char line[300];
+	int i = 0;
+	FILE* file;
+	char line[300];
 
-    file = fopen("../datasets/custom2/sudokus.txt", "r"); // Open the file in read mode
+	file = fopen("../datasets/custom2/sudokus.txt", "r"); // Open the file in read mode
 
-    if (file == NULL)
-    {
-        printf("Unable to open sudokus file.\n");
-        return 1;
-    }
+	if (file == NULL)
+	{
+		printf("Unable to open sudokus file.\n");
+		return 1;
+	}
 
-    // Read the file line by line
-    while (fgets(line, sizeof(line), file) != NULL)
-    {
-        char* spacePosition = strchr(line, ' '); // Find the first space
-        // Calculate the length before the space
-        int lengthBeforeSpace = spacePosition - line;
+	// Read the file line by line
+	while (fgets(line, sizeof(line), file) != NULL)
+	{
+		char* spacePosition = strchr(line, ' '); // Find the first space
+		// Calculate the length before the space
+		int lengthBeforeSpace = spacePosition - line;
 
-        // Extract characters before the space
-        char filePath[lengthBeforeSpace + 1]; // +1 for null-terminator
-        strncpy(filePath, line, lengthBeforeSpace);
-        filePath[lengthBeforeSpace] = '\0';
-        int digits[81];
-        spacePosition++;
-        for (int j = 0; j < 81; ++j)
-        {
-            digits[j] = *spacePosition - '0';
-            spacePosition++;
-        }
+		// Extract characters before the space
+		char filePath[lengthBeforeSpace + 1]; // +1 for null-terminator
+		strncpy(filePath, line, lengthBeforeSpace);
+		filePath[lengthBeforeSpace] = '\0';
+		int digits[81];
+		spacePosition++;
+		for (int j = 0; j < 81; ++j)
+		{
+			digits[j] = *spacePosition - '0';
+			spacePosition++;
+		}
 
-        DetectionInfo * detection = BordersDetection(filePath, savePath);
+		DetectionInfo* detection = BordersDetection(filePath, savePath);
 		if (detection != nullptr)
 		{
 			DigitDetection(detection, savePath, i, digits);
@@ -323,8 +313,8 @@ int countLines(const char* filename)
 			delete detection->bestSquare;
 			delete detection;
 		}
-        i++;
-    }
+		i++;
+	}
 
-    return EXIT_SUCCESS;
+	return EXIT_SUCCESS;
 }*/

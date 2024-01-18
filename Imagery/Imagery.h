@@ -155,7 +155,7 @@ namespace Imagery
 
 	void VerticalOffset(Matrix& m, int offset);
 
-	Matrix** CenterCells(const Matrix** cells, const bool* emptyCells);
+	Matrix** ExtractAndCenterCellsDigits(const Matrix** cells, const bool* emptyCells);
 
 	// Delete a pixel and recursively delete its neighbors if they are white.
 	void RemoveContinuousPixels(Matrix& img, int oy, int ox, int halfWindowSize);
@@ -191,6 +191,8 @@ namespace Imagery
 
 	Matrix*
 	ExtractBiggestPixelGroupAndCorners(const Matrix& img, int halfWindowSize, Square* corners, float target = 255);
+
+	std::list<QPoint> GetMainPixelsGroup(const Matrix& img, int halfWindowSize, float target = 255);
 
 	std::list<QPoint> AurelCornerDetection(std::list<QPoint>& points);
 }

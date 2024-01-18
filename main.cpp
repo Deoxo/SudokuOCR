@@ -28,7 +28,8 @@ int GUI(int argc, char** argv)
 	return QApplication::exec();
 }
 
-// Todo: Make a window for borders removal to not stop if there is one black pixel
+// Todo: Once perspective has been done, check for white borders and crop them (at least do not take them for the split)
+// Todo: Check for need to crop cells borders (for example by computing the ratio of white pixels along each row and column)
 int main(int argc, char** argv)
 {
 	return GUI(argc, argv);

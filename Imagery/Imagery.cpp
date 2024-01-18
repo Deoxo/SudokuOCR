@@ -43,7 +43,7 @@ namespace Imagery
 
 	Matrix* ConvertToGrayscale(const Matrix& m)
 	{
-		Matrix* gray = new Matrix(m.rows, m.cols, 1);
+		Matrix* gray = new Matrix(m.rows, m.cols);
 		for (int i = 0; i < m.matrixSize; i++)
 			gray->data[i] = (float) (0.299 * m.data[i] + 0.587 * m.data[m.matrixSize + i] +
 									 0.114 * m.data[2 * m.matrixSize + i]);
@@ -52,7 +52,7 @@ namespace Imagery
 
 	Matrix* GetGaussianKernel(const int size)
 	{
-		Matrix* kernel = new Matrix(size, size, 1);
+		Matrix* kernel = new Matrix(size, size);
 
 		float* gauss = kernel->data;
 		double sum = 0;
@@ -105,13 +105,13 @@ namespace Imagery
 
 	void Dilate(const Matrix& m, Matrix& output, const int neighborhoodSize)
 	{
-		Matrix* kernel = new Matrix(neighborhoodSize, neighborhoodSize, 1);
-		for (int i = 0; i < kernel->matrixSize; i++)
-			kernel->data[i] = 0;
+		Matrix kernel(neighborhoodSize, neighborhoodSize);
+		for (int i = 0; i < kernel.matrixSize; i++)
+			kernel.data[i] = 0;
 		for (int i = 0; i < neighborhoodSize; i++)
 		{
-			kernel->data[i * neighborhoodSize + neighborhoodSize / 2] = 1;
-			kernel->data[(neighborhoodSize / 2) * neighborhoodSize + i] = 1;
+			kernel.data[i * neighborhoodSize + neighborhoodSize / 2] = 1;
+			kernel.data[(neighborhoodSize / 2) * neighborhoodSize + i] = 1;
 		}
 
 		const int outputCols = m.cols;
@@ -125,8 +125,8 @@ namespace Imagery
 		}
 #endif
 
-		const int filterCols = kernel->cols;
-		const int filterRows = kernel->rows;
+		const int filterCols = kernel.cols;
+		const int filterRows = kernel.rows;
 
 		const int inputCols = m.cols;
 		const int inputRows = m.rows;
@@ -146,7 +146,7 @@ namespace Imagery
 						const int inputCol = j + l - c;
 						if (inputRow >= 0 && inputRow < inputRows && inputCol >= 0 && inputCol < inputCols)
 						{
-							const float v = m.data[inputRow * m.cols + inputCol] * kernel->data[k * kernel->cols + l];
+							const float v = m.data[inputRow * m.cols + inputCol] * kernel.data[k * kernel.cols + l];
 							if (v > maxi)
 								maxi = v;
 						}
@@ -155,19 +155,17 @@ namespace Imagery
 				output.data[i * output.cols + j] = maxi;
 			}
 		}
-
-		delete kernel;
 	}
 
 	void Erode(const Matrix& m, Matrix& output, const int neighborhoodSize)
 	{
-		Matrix* kernel = new Matrix(neighborhoodSize, neighborhoodSize, 1);
-		for (int i = 0; i < kernel->matrixSize; i++)
-			kernel->data[i] = 0;
+		Matrix kernel(neighborhoodSize, neighborhoodSize);
+		for (int i = 0; i < kernel.matrixSize; i++)
+			kernel.data[i] = 0;
 		for (int i = 0; i < neighborhoodSize; i++)
 		{
-			kernel->data[i * neighborhoodSize + neighborhoodSize / 2] = 1;
-			kernel->data[(neighborhoodSize / 2) * neighborhoodSize + i] = 1;
+			kernel.data[i * neighborhoodSize + neighborhoodSize / 2] = 1;
+			kernel.data[(neighborhoodSize / 2) * neighborhoodSize + i] = 1;
 		}
 
 		const int outputCols = m.cols;
@@ -181,8 +179,8 @@ namespace Imagery
 		}
 #endif
 
-		const int filterCols = kernel->cols;
-		const int filterRows = kernel->rows;
+		const int filterCols = kernel.cols;
+		const int filterRows = kernel.rows;
 
 		const int inputCols = m.cols;
 		const int inputRows = m.rows;
@@ -202,7 +200,7 @@ namespace Imagery
 						const int inputCol = j + l - c;
 						if (inputRow >= 0 && inputRow < inputRows && inputCol >= 0 && inputCol < inputCols)
 						{
-							const float ke = kernel->data[k * kernel->cols + l];
+							const float ke = kernel.data[k * kernel.cols + l];
 							const float v = m.data[inputRow * m.cols + inputCol] * ke;
 							if (ke != 0 && v < mini)
 								mini = v;
@@ -212,8 +210,6 @@ namespace Imagery
 				output.data[i * output.cols + j] = mini;
 			}
 		}
-
-		delete kernel;
 	}
 
 	void BitwiseNot(const Matrix& m, Matrix& output)
@@ -228,6 +224,7 @@ namespace Imagery
 		Matrix* blurred = Matrix::CreateSameSize(m);
 		Blur(m, *blurred, 5);
 		Matrix** gradients = GetGradients(*blurred);
+		*gradients[0] *= 255.f / gradients[0]->Max();
 		Matrix* nonMaxSuppressed = Matrix::CreateSameSize(m);
 		NonMaximumSuppression(*gradients[0], *gradients[1], *nonMaxSuppressed);
 		Matrix* doubleThresholded = Matrix::CreateSameSize(m);
@@ -247,84 +244,92 @@ namespace Imagery
 	Matrix** GetGradients(const Matrix& m)
 	{
 		// Build the kernels
-		Matrix* horizontalKernel = new Matrix(3, 3, 1);
-		Matrix* verticalKernel = new Matrix(3, 3, 1);
+		Matrix horizontalKernel(3, 3);
+		Matrix verticalKernel(3, 3);
 		const float horizontalKernelData[] = {-1, 0, 1, -2, 0, 2, -1, 0, 1};
 		const float verticalKernelData[] = {-1, -2, -1, 0, 0, 0, 1, 2, 1};
-		memcpy(horizontalKernel->data, horizontalKernelData, sizeof(float) * 9);
-		memcpy(verticalKernel->data, verticalKernelData, sizeof(float) * 9);
+		memcpy(horizontalKernel.data, horizontalKernelData, sizeof(float) * 9);
+		memcpy(verticalKernel.data, verticalKernelData, sizeof(float) * 9);
 
 		// Convolve the kernels with the matrix
 		Matrix* ix = Matrix::CreateSameSize(m);
 		Matrix* iy = Matrix::CreateSameSize(m);
-		Matrix::ValidConvolution(m, *horizontalKernel, *ix);
-		Matrix::ValidConvolution(m, *verticalKernel, *iy);
+		Matrix::ValidConvolution(m, horizontalKernel, *ix);
+		Matrix::ValidConvolution(m, verticalKernel, *iy);
 
 		// Create the gradients array
 		Matrix** gradients = new Matrix* [2];
-		gradients[0] = ix;
-		gradients[1] = iy;
+		gradients[0] = Matrix::CreateSameSize(m);
+		gradients[1] = Matrix::CreateSameSize(m);
 
 		// G
 		for (int i = 0; i < ix->matrixSize; i++)
-			ix->data[i] = (float) sqrt(pow(ix->data[i], 2) + pow(iy->data[i], 2));
+		{
+			const float ix2 = ix->data[i] * ix->data[i];
+			const float iy2 = iy->data[i] * iy->data[i];
+			gradients[0]->data[i] = std::sqrt(ix2 + iy2);
+		}
 
 		// Theta
 		for (int i = 0; i < ix->matrixSize; i++)
-			iy->data[i] = std::atan2(iy->data[i], ix->data[i]);
+			gradients[1]->data[i] = std::atan2(iy->data[i], ix->data[i]);
 
 		// Free the kernels
-		delete horizontalKernel;
-		delete verticalKernel;
+		delete ix;
+		delete iy;
 
 		return gradients;
 	}
 
 	void NonMaximumSuppression(const Matrix& m, const Matrix& angles, Matrix& output)
 	{
+		m.CopyValuesTo(output);
+		return;
 		// Convert angles to degrees in [0, 180[
 		for (int i = 0; i < angles.matrixSize; i++)
 		{
 			angles.data[i] = (float) (angles.data[i] * 180 / M_PI);
 			if (angles.data[i] < 0)
 				angles.data[i] += 180;
+			if (angles.data[i] < 0 || angles.data[i] > 180)
+				printf("angle: %f\n", angles.data[i]);
 		}
 
 		// Non maximum suppression
-		for (int x = 1; x < m.rows - 1; x++)
+		for (int y = 1; y < m.rows - 1; y++)
 		{
-			for (int y = 1; y < m.cols - 1; y++)
+			for (int x = 1; x < m.cols - 1; x++)
 			{
-				const float angle = angles.data[x * angles.cols + y];
-				const float v = m.data[x * m.cols + y];
+				const float angle = angles.data[y * angles.cols + x];
+				const float v = m.data[y * m.cols + x];
 				float v1, v2;
+
 				if ((angle >= 0 && angle < 22.5) || (angle >= 157.5 && angle < 180))
 				{
-					v1 = m.data[x * m.cols + y - 1];
-					v2 = m.data[x * m.cols + y + 1];
+					v1 = m.data[y * m.cols + x - 1];
+					v2 = m.data[y * m.cols + x + 1];
 				}
 				else if (angle >= 22.5 && angle < 67.5)
 				{
-					v1 = m.data[(x - 1) * m.cols + y + 1];
-					v2 = m.data[(x + 1) * m.cols + y - 1];
+					v1 = m.data[(y - 1) * m.cols + x + 1];
+					v2 = m.data[(y + 1) * m.cols + x - 1];
 				}
 				else if (angle >= 67.5 && angle < 112.5)
 				{
-					v1 = m.data[(x - 1) * m.cols + y];
-					v2 = m.data[(x + 1) * m.cols + y];
+					v1 = m.data[(y - 1) * m.cols + x];
+					v2 = m.data[(y + 1) * m.cols + x];
 				}
 				else
 				{
-					v1 = m.data[(x - 1) * m.cols + y - 1];
-					v2 = m.data[(x + 1) * m.cols + y + 1];
+					v1 = m.data[(y - 1) * m.cols + x - 1];
+					v2 = m.data[(y + 1) * m.cols + x + 1];
 				}
-				if (v < v1 || v < v2)
-					output.data[x * output.cols + y] = 0;
-				else
-					output.data[x * output.cols + y] = v;
+
+				output.data[y * output.cols + x] = v < v1 || v < v2 ? 0 : v;
 			}
 		}
 	}
+
 
 	void DoubleThreshold(const Matrix& m, Matrix& output, const float lowThreshold, const float highThreshold)
 	{
@@ -375,8 +380,7 @@ namespace Imagery
 		const int diagonal = (int) (sqrt(pow(m.rows, 2) + pow(m.cols, 2)) + 1);
 		const int accumulatorRows = 2 * diagonal;
 		const int accumulatorCols = 180;
-		Matrix* accumulator = new Matrix(accumulatorRows, accumulatorCols, 1);
-		accumulator->Reset();
+		Matrix* accumulator = new Matrix(accumulatorRows, accumulatorCols);
 
 		// Precompute cos and sin values
 		float* cosTable = new float[180];
@@ -834,7 +838,7 @@ namespace Imagery
 		const int croppedCellSize = cellSize - 2 * cropSize;
 		Matrix** croppedCells = new Matrix* [numCells];
 		for (int i = 0; i < numCells; ++i)
-			croppedCells[i] = new Matrix(croppedCellSize, croppedCellSize, 1);
+			croppedCells[i] = new Matrix(croppedCellSize, croppedCellSize);
 
 		for (int i = 0; i < numCells; ++i)
 		{
@@ -895,14 +899,18 @@ namespace Imagery
 		}
 	}
 
+	// Determine if cells are empty by compute the occupancy of the center of the cell
 	bool* GetEmptyCells(const Matrix** cells, const float emptinessThreshold)
 	{
 		bool* emptyCells = new bool[81];
 		for (int i = 0; i < 81; ++i)
 		{
-			const float sum = cells[i]->Sum();
+			Matrix center(20, 20);
+			for (int j = 0; j < 20; ++j)
+				for (int k = 0; k < 20; ++k)
+					center.data[j * center.cols + k] = cells[i]->data[(j + 4) * cells[i]->cols + k + 4];
 
-			emptyCells[i] = sum < emptinessThreshold * (float) cells[i]->matrixSize * 255;
+			emptyCells[i] = center.Sum() < emptinessThreshold * (float) cells[i]->matrixSize * 255;
 		}
 
 		return emptyCells;
@@ -915,7 +923,7 @@ namespace Imagery
 		const int resizedCellSize = 28;
 		Matrix** resizedCells = new Matrix* [numCells];
 		for (int i = 0; i < numCells; ++i)
-			resizedCells[i] = new Matrix(resizedCellSize, resizedCellSize, 1);
+			resizedCells[i] = new Matrix(resizedCellSize, resizedCellSize);
 
 		for (int i = 0; i < numCells; ++i)
 		{
@@ -995,45 +1003,47 @@ namespace Imagery
 		}
 	}
 
-	Matrix** CenterCells(const Matrix** cells, const bool* emptyCells)
+	Matrix** ExtractAndCenterCellsDigits(const Matrix** cells, const bool* emptyCells)
 	{
 		Matrix** centeredCells = new Matrix* [81];
 		for (int i = 0; i < 81; ++i)
 		{
+			centeredCells[i] = new Matrix(28, 28);
+
+			// Skip empty cells
 			if (emptyCells[i])
 			{
-				centeredCells[i] = new Matrix(28, 28, 1);
 				cells[i]->CopyValuesTo(*centeredCells[i]);
 				continue;
 			}
 
-			// Compute the center of pixels, which is the colum and row at the center at the digit
-			const int width = cells[i]->cols;
-			const int height = cells[i]->rows;
-			int centerCol = 0, centerRow = 0;
-			int numPixels = 0;
-			for (int x = 0; x < width; ++x)
+			// Get the main group of pixels
+			std::list<QPoint> mainPoints = GetMainPixelsGroup(*cells[i], 2);
+
+			// Compute the center of the digit
+			int minX = 28, maxX = 0, minY = 28, maxY = 0;
+			for (const QPoint& p : mainPoints)
 			{
-				for (int y = 0; y < height; ++y)
-				{
-					const float v = cells[i]->data[y * cells[i]->cols + x];
-					if (v > 0)
-					{
-						centerCol += x;
-						centerRow += y;
-						numPixels++;
-					}
-				}
+				const int x = p.x();
+				const int y = p.y();
+				centeredCells[i]->data[y * centeredCells[i]->cols + x] = 255;
+				if (x < minX)
+					minX = x;
+				if (x > maxX)
+					maxX = x;
+				if (y < minY)
+					minY = y;
+				if (y > maxY)
+					maxY = y;
 			}
-			centerCol /= numPixels;
-			centerRow /= numPixels;
+			const int centerCol = (int) ((float) (minX + maxX) / 2.f);
+			const int centerRow = (int) ((float) (minY + maxY) / 2.f);
 
 			// Compute the offset to center the digit
 			const int offsetCol = 14 - centerCol;
 			const int offsetRow = 14 - centerRow;
 
-			centeredCells[i] = new Matrix(28, 28, 1);
-			cells[i]->CopyValuesTo(*centeredCells[i]);
+			// Center the digit
 			HorizontalOffset(*centeredCells[i], offsetCol);
 			VerticalOffset(*centeredCells[i], offsetRow);
 		}
@@ -1095,7 +1105,7 @@ namespace Imagery
 		//double center_x = matrix->cols / 2;
 		//double center_y = matrix->rows / 2;
 
-		Matrix* res = new Matrix(matrix.rows, matrix.cols, 1);
+		Matrix* res = new Matrix(matrix.rows, matrix.cols);
 		for (int i = 0; i < matrix.rows; i++)
 			for (int j = 0; j < matrix.cols; j++)
 				res->data[i * res->cols + j] = 0;
@@ -1248,7 +1258,7 @@ namespace Imagery
 
 		const int sudoku_width = abs(rotatedSquare->topRight.x - rotatedSquare->topLeft.x);
 		const int sudoku_height = abs(rotatedSquare->bottomLeft.y - rotatedSquare->topLeft.y);
-		Matrix* result = new Matrix(sudoku_height, sudoku_width, 1);
+		Matrix* result = new Matrix(sudoku_height, sudoku_width);
 
 		for (int y = 0; y < sudoku_height; y++)
 		{
@@ -1284,7 +1294,7 @@ namespace Imagery
 			for (int i = 0; i < 9; i++)
 			{
 				const int iX = i * cellW;
-				res[j * 9 + i] = new Matrix(cellH, cellW, 1);
+				res[j * 9 + i] = new Matrix(cellH, cellW);
 				Matrix* cell = res[j * 9 + i];
 				for (int k = 0; k < cellW; k++)
 					for (int l = 0; l < cellH; l++)
@@ -1302,7 +1312,7 @@ namespace Imagery
 		if (a.rows != n || a.cols != n || b.rows != n || b.cols != 1)
 			throw std::runtime_error("Invalid input");
 
-		Matrix* res = new Matrix(n, 1, 1);
+		Matrix* res = new Matrix(n, 1);
 
 		int i, j, k;
 
@@ -1365,7 +1375,7 @@ namespace Imagery
 						  m.data[1] * (m.data[3] * m.data[8] - m.data[5] * m.data[6]) +
 						  m.data[2] * (m.data[3] * m.data[7] - m.data[4] * m.data[6]);
 
-		Matrix* inv = new Matrix(3, 3, 1);
+		Matrix* inv = new Matrix(3, 3);
 		inv->data[0] = m.data[4] * m.data[8] - m.data[5] * m.data[7];
 		inv->data[1] = m.data[2] * m.data[7] - m.data[1] * m.data[8];
 		inv->data[2] = m.data[1] * m.data[5] - m.data[2] * m.data[4];
@@ -1402,82 +1412,79 @@ namespace Imagery
 		const float dBrx = (float) desiredEdges.bottomRight.x;
 		const float dBry = (float) desiredEdges.bottomRight.y;
 
-		Matrix* a = new Matrix(8, 8, 1);
-		Matrix* b = new Matrix(8, 1, 1);
+		Matrix a(8, 8);
+		Matrix b(8, 1);
 
 		// First row
-		a->data[0 * 8 + 0] = tlx;
-		a->data[0 * 8 + 1] = tly;
-		a->data[0 * 8 + 2] = 1;
-		a->data[0 * 8 + 3] = a->data[0 * 8 + 4] = a->data[0 * 8 + 5] = 0;
-		a->data[0 * 8 + 6] = -tlx * dTlx;
-		a->data[0 * 8 + 7] = -tly * dTlx;
-		b->data[0 * b->cols + 0] = dTlx;
+		a.data[0 * 8 + 0] = tlx;
+		a.data[0 * 8 + 1] = tly;
+		a.data[0 * 8 + 2] = 1;
+		a.data[0 * 8 + 3] = a.data[0 * 8 + 4] = a.data[0 * 8 + 5] = 0;
+		a.data[0 * 8 + 6] = -tlx * dTlx;
+		a.data[0 * 8 + 7] = -tly * dTlx;
+		b.data[0 * b.cols + 0] = dTlx;
 		// Second row
-		a->data[1 * 8 + 0] = trx;
-		a->data[1 * 8 + 1] = try_;
-		a->data[1 * 8 + 2] = 1;
-		a->data[1 * 8 + 3] = a->data[1 * 8 + 4] = a->data[1 * 8 + 5] = 0;
-		a->data[1 * 8 + 6] = -trx * dTrx;
-		a->data[1 * 8 + 7] = -try_ * dTrx;
-		b->data[1] = dTrx;
+		a.data[1 * 8 + 0] = trx;
+		a.data[1 * 8 + 1] = try_;
+		a.data[1 * 8 + 2] = 1;
+		a.data[1 * 8 + 3] = a.data[1 * 8 + 4] = a.data[1 * 8 + 5] = 0;
+		a.data[1 * 8 + 6] = -trx * dTrx;
+		a.data[1 * 8 + 7] = -try_ * dTrx;
+		b.data[1] = dTrx;
 		// Third row
-		a->data[2 * 8 + 0] = blx;
-		a->data[2 * 8 + 1] = bly;
-		a->data[2 * 8 + 2] = 1;
-		a->data[2 * 8 + 3] = a->data[2 * 8 + 4] = a->data[2 * 8 + 5] = 0;
-		a->data[2 * 8 + 6] = -blx * dBlx;
-		a->data[2 * 8 + 7] = -bly * dBlx;
-		b->data[2] = dBlx;
+		a.data[2 * 8 + 0] = blx;
+		a.data[2 * 8 + 1] = bly;
+		a.data[2 * 8 + 2] = 1;
+		a.data[2 * 8 + 3] = a.data[2 * 8 + 4] = a.data[2 * 8 + 5] = 0;
+		a.data[2 * 8 + 6] = -blx * dBlx;
+		a.data[2 * 8 + 7] = -bly * dBlx;
+		b.data[2] = dBlx;
 		// Fourth row
-		a->data[3 * 8 + 0] = brx;
-		a->data[3 * 8 + 1] = bry;
-		a->data[3 * 8 + 2] = 1;
-		a->data[3 * 8 + 3] = a->data[3 * 8 + 4] = a->data[3 * 8 + 5] = 0;
-		a->data[3 * 8 + 6] = -brx * dBrx;
-		a->data[3 * 8 + 7] = -bry * dBrx;
-		b->data[3] = dBrx;
+		a.data[3 * 8 + 0] = brx;
+		a.data[3 * 8 + 1] = bry;
+		a.data[3 * 8 + 2] = 1;
+		a.data[3 * 8 + 3] = a.data[3 * 8 + 4] = a.data[3 * 8 + 5] = 0;
+		a.data[3 * 8 + 6] = -brx * dBrx;
+		a.data[3 * 8 + 7] = -bry * dBrx;
+		b.data[3] = dBrx;
 		// Fifth row
-		a->data[4 * 8 + 0] = a->data[4 * 8 + 1] = a->data[4 * 8 + 2] = 0;
-		a->data[4 * 8 + 3] = tlx;
-		a->data[4 * 8 + 4] = tly;
-		a->data[4 * 8 + 5] = 1;
-		a->data[4 * 8 + 6] = -tlx * dTly;
-		a->data[4 * 8 + 7] = -tly * dTly;
-		b->data[4] = dTly;
+		a.data[4 * 8 + 0] = a.data[4 * 8 + 1] = a.data[4 * 8 + 2] = 0;
+		a.data[4 * 8 + 3] = tlx;
+		a.data[4 * 8 + 4] = tly;
+		a.data[4 * 8 + 5] = 1;
+		a.data[4 * 8 + 6] = -tlx * dTly;
+		a.data[4 * 8 + 7] = -tly * dTly;
+		b.data[4] = dTly;
 		// Sixth row
-		a->data[5 * 8 + 0] = a->data[5 * 8 + 1] = a->data[5 * 8 + 2] = 0;
-		a->data[5 * 8 + 3] = trx;
-		a->data[5 * 8 + 4] = try_;
-		a->data[5 * 8 + 5] = 1;
-		a->data[5 * 8 + 6] = -trx * dTry;
-		a->data[5 * 8 + 7] = -try_ * dTry;
-		b->data[5] = dTry;
+		a.data[5 * 8 + 0] = a.data[5 * 8 + 1] = a.data[5 * 8 + 2] = 0;
+		a.data[5 * 8 + 3] = trx;
+		a.data[5 * 8 + 4] = try_;
+		a.data[5 * 8 + 5] = 1;
+		a.data[5 * 8 + 6] = -trx * dTry;
+		a.data[5 * 8 + 7] = -try_ * dTry;
+		b.data[5] = dTry;
 		// Seventh row
-		a->data[6 * 8 + 0] = a->data[6 * 8 + 1] = a->data[6 * 8 + 2] = 0;
-		a->data[6 * 8 + 3] = blx;
-		a->data[6 * 8 + 4] = bly;
-		a->data[6 * 8 + 5] = 1;
-		a->data[6 * 8 + 6] = -blx * dBly;
-		a->data[6 * 8 + 7] = -bly * dBly;
-		b->data[6] = dBly;
+		a.data[6 * 8 + 0] = a.data[6 * 8 + 1] = a.data[6 * 8 + 2] = 0;
+		a.data[6 * 8 + 3] = blx;
+		a.data[6 * 8 + 4] = bly;
+		a.data[6 * 8 + 5] = 1;
+		a.data[6 * 8 + 6] = -blx * dBly;
+		a.data[6 * 8 + 7] = -bly * dBly;
+		b.data[6] = dBly;
 		// Eighth row
-		a->data[7 * 8 + 0] = a->data[7 * 8 + 1] = a->data[7 * 8 + 2] = 0;
-		a->data[7 * 8 + 3] = brx;
-		a->data[7 * 8 + 4] = bry;
-		a->data[7 * 8 + 5] = 1;
-		a->data[7 * 8 + 6] = -brx * dBry;
-		a->data[7 * 8 + 7] = -bry * dBry;
-		b->data[7] = dBry;
+		a.data[7 * 8 + 0] = a.data[7 * 8 + 1] = a.data[7 * 8 + 2] = 0;
+		a.data[7 * 8 + 3] = brx;
+		a.data[7 * 8 + 4] = bry;
+		a.data[7 * 8 + 5] = 1;
+		a.data[7 * 8 + 6] = -brx * dBry;
+		a.data[7 * 8 + 7] = -bry * dBry;
+		b.data[7] = dBry;
 
 		// Solve the system of linear equations
-		Matrix* solution = GaussianElimination(*a, *b, 8);
-		Matrix* res = new Matrix(3, 3, 1);
+		Matrix* solution = GaussianElimination(a, b, 8);
+		Matrix* res = new Matrix(3, 3);
 		std::copy(solution->data, solution->data + 8, res->data);
 		res->data[8] = 1;
-
-		delete a;
-		delete b;
 
 		return res;
 	}
@@ -1555,23 +1562,21 @@ namespace Imagery
 	Point ApplyInversePerspectiveTransformation(const Matrix& inversePerspectiveMatrix, const Point& p)
 	{
 		// Create the point in homogeneous coordinates
-		Matrix* homogeneousPoint = new Matrix(3, 1, 1);
-		homogeneousPoint->data[0] = (float) p.x;
-		homogeneousPoint->data[1] = (float) p.y;
-		homogeneousPoint->data[2] = 1.f;
+		Matrix homogeneousPoint(3, 1);
+		homogeneousPoint.data[0] = (float) p.x;
+		homogeneousPoint.data[1] = (float) p.y;
+		homogeneousPoint.data[2] = 1.f;
 
 		// Apply the inverse perspective transformation
-		Matrix* out = new Matrix(3, 1, 1);
-		Matrix::Multiply(inversePerspectiveMatrix, *homogeneousPoint, *out);
+		Matrix out(3, 1);
+		Matrix::Multiply(inversePerspectiveMatrix, homogeneousPoint, out);
 
 		// Divide by the last coordinate to get the real coordinates
 		Point res;
-		res.x = (int) (out->data[0] / out->data[2]);
-		res.y = (int) (out->data[1] / out->data[2]);
+		res.x = (int) (out.data[0] / out.data[2]);
+		res.y = (int) (out.data[1] / out.data[2]);
 
 		// Free memory
-		delete homogeneousPoint;
-		delete out;
 
 		return res;
 	}
@@ -1585,7 +1590,7 @@ namespace Imagery
 		Matrix* inversePerspectiveMatrix = Get3x3MatrixInverse(*perspectiveMatrix);
 
 		// Apply the perspective transformation
-		Matrix* res = new Matrix(squareSize, squareSize, 1);
+		Matrix* res = new Matrix(squareSize, squareSize);
 		for (int y = 0; y < res->rows; y++)
 		{
 			for (int x = 0; x < res->cols; x++)
@@ -1656,29 +1661,9 @@ namespace Imagery
 	ExtractBiggestPixelGroupAndCorners(const Matrix& img, const int halfWindowSize, Square* corners, const float target)
 	{
 		Matrix* res = Matrix::CreateSameSize(img);
-		img.CopyValuesTo(*res);
-
-		// Find all pixel groups
-		std::list<std::list<QPoint>> pixelGroups;
-		for (int y = 0; y < res->rows; ++y)
-		{
-			for (int x = 0; x < res->cols; ++x)
-			{
-				if (res->data[y * res->cols + x] == 255)
-				{
-					std::list<QPoint> group;
-					Imagery::FloodFill(*res, QPoint(x, y), halfWindowSize, group, target);
-					pixelGroups.push_back(group);
-				}
-			}
-		}
 
 		// Group with most elements
-		std::list<QPoint>& mainGroup = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
-														 [](const std::list<QPoint>& a, const std::list<QPoint>& b)
-														 {
-															 return a.size() < b.size();
-														 });
+		std::list<QPoint> mainGroup = GetMainPixelsGroup(img, halfWindowSize, target);
 
 		// Write the main group to the result matrix
 		for (const QPoint& pixel : mainGroup)
@@ -1694,6 +1679,36 @@ namespace Imagery
 		corners->bottomRight = Point(*std::next(aurelCorners.begin(), 3));
 
 		return res;
+	}
+
+	std::list<QPoint> GetMainPixelsGroup(const Matrix& img, int halfWindowSize, float target)
+	{
+		Matrix* tmp = Matrix::CreateSameSize(img);
+		img.CopyValuesTo(*tmp);
+		// Find all pixel groups
+		std::list<std::list<QPoint>> pixelGroups;
+		for (int y = 0; y < tmp->rows; ++y)
+		{
+			for (int x = 0; x < tmp->cols; ++x)
+			{
+				if (tmp->data[y * tmp->cols + x] == 255)
+				{
+					std::list<QPoint> group;
+					Imagery::FloodFill(*tmp, QPoint(x, y), halfWindowSize, group, target);
+					pixelGroups.push_back(group);
+				}
+			}
+		}
+
+		// Group with most elements
+		std::list<QPoint>& mainGroup = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
+														 [](const std::list<QPoint>& a, const std::list<QPoint>& b)
+														 {
+															 return a.size() < b.size();
+														 });
+
+		delete tmp;
+		return mainGroup;
 	}
 
 	std::list<QPoint> AurelCornerDetection(std::list<QPoint>& points)

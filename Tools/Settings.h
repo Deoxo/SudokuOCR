@@ -38,7 +38,7 @@
 
 #define SQUARES_EDGE_DIFF_TOL .8f
 
-#define GAUSS_BLUR_SIGMA 1.0
+#define GAUSS_BLUR_SIGMA 1.5f
 #define GAUSS_BLUR_K 1
 
 #define MIN_LINES_RHO_DIST 40

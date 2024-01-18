@@ -23,7 +23,7 @@ public:
 	int matrixSize;
 	float* data;
 
-	Matrix(int rows, int cols, int dims);
+	Matrix(int rows, int cols, int dims = 1);
 
 	~Matrix();
 
@@ -81,7 +81,9 @@ public:
 
 	Matrix& operator*=(float scalar);
 
-	[[nodiscard]] float Max();
+	[[nodiscard]] float Max() const;
+
+	[[nodiscard]] float Min() const;
 
 private:
 	int offset;

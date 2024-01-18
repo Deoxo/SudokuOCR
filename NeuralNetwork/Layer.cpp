@@ -20,15 +20,15 @@
     convLayer->filtersSize = FILTERS_SIZE;
 
     convLayer->base.weights = new Matrix(convLayer->filtersSize, convLayer->filtersSize, NUM_FILTERS);
-    convLayer->base.biases = new Matrix(shape->dimensions[2], 1, 1);
+    convLayer->base.biases = new Matrix(shape->dimensions[2], 1);
     convLayer->base.output = new Matrix(shape->dimensions[0], shape->dimensions[1], shape->dimensions[2]);
     convLayer->base.z = new Matrix(shape->dimensions[0], shape->dimensions[1], shape->dimensions[2]);
     convLayer->base.delta = new Matrix(shape->dimensions[0], shape->dimensions[1], shape->dimensions[2]);
-    convLayer->base.deltaBiases = new Matrix(shape->dimensions[2], 1, 1);
+    convLayer->base.deltaBiases = new Matrix(shape->dimensions[2], 1);
     convLayer->base.deltaWeights = new Matrix(convLayer->filtersSize, convLayer->filtersSize, NUM_FILTERS);
     convLayer->base.activationPrime = new Matrix(shape->dimensions[0], shape->dimensions[1], shape->dimensions[2]);
     convLayer->base.deltaWeightsSum = new Matrix(convLayer->filtersSize, convLayer->filtersSize, NUM_FILTERS);
-    convLayer->base.deltaBiasesSum = new Matrix(shape->dimensions[2], 1, 1);
+    convLayer->base.deltaBiasesSum = new Matrix(shape->dimensions[2], 1);
 
     // Initialize weights and biases
     for (int j = 0; j < convLayer->base.weights->matrixSize; ++j)
@@ -502,26 +502,22 @@ FCL::Compile(const LayerShape& shape, const LayerShape& previousLayerShape, Opti
 
 
 	// Allocate the matrices
-	weights = new Matrix(shape.dimensions[0], prevLayerNumNeurons, 1);
-	biases = new Matrix(shape.dimensions[0], 1, 1);
-	output = new Matrix(shape.dimensions[0], 1, 1);
-	z = new Matrix(shape.dimensions[0], 1, 1);
-	delta = new Matrix(shape.dimensions[0], 1, 1);
-	deltaBiases = new Matrix(shape.dimensions[0], 1, 1);
-	deltaWeights = new Matrix(shape.dimensions[0], prevLayerNumNeurons, 1);
-	activationPrime = new Matrix(shape.dimensions[0], 1, 1);
-	deltaWeightsSum = new Matrix(shape.dimensions[0], prevLayerNumNeurons, 1);
-	deltaBiasesSum = new Matrix(shape.dimensions[0], 1, 1);
+	weights = new Matrix(shape.dimensions[0], prevLayerNumNeurons);
+	biases = new Matrix(shape.dimensions[0], 1);
+	output = new Matrix(shape.dimensions[0], 1);
+	z = new Matrix(shape.dimensions[0], 1);
+	delta = new Matrix(shape.dimensions[0], 1);
+	deltaBiases = new Matrix(shape.dimensions[0], 1);
+	deltaWeights = new Matrix(shape.dimensions[0], prevLayerNumNeurons);
+	activationPrime = new Matrix(shape.dimensions[0], 1);
+	deltaWeightsSum = new Matrix(shape.dimensions[0], prevLayerNumNeurons);
+	deltaBiasesSum = new Matrix(shape.dimensions[0], 1);
 
 	// Initialize weights and biases
 	for (int j = 0; j < weights->matrixSize; ++j)
 		weights->data[j] = ((double) rand()) / ((double) RAND_MAX) * 2 - 1;
 	for (int j = 0; j < biases->matrixSize; ++j)
 		biases->data[j] = ((double) rand()) / ((double) RAND_MAX) * 2 - 1;
-
-	// Make sure the deltaSums are initialized to 0
-	deltaWeightsSum->Reset();
-	deltaBiasesSum->Reset();
 
 	const int optNumsParams = weights->size + biases->size;
 	optimizer->Compile(optNumsParams);

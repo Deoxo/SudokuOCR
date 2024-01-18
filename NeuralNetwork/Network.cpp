@@ -238,8 +238,8 @@ void Custom(const int saveNeuralNetwork)
 
 void Custom3(const int saveNeuralNetwork)
 {
-	const int numData = 14700;
-	const int numTrainingSets = 14000;//17600;
+	const int numData = 32260;
+	const int numTrainingSets = 32000;//17600;
 	const int numInputsNodes = 784, numHiddenNodes = 100, numOutputsNodes = 9;
 	const int batchSize = 100;
 	const int numberOfEpochs = 15;

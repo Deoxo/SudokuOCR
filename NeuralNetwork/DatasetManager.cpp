@@ -32,9 +32,8 @@ Matrix*** LoadMnist(const char* path, const int dataLength, const int format2D)
 	while (ind < dataLength && getline(&line, &len, file) != -1)
 	{
 		i = -1;
-		dataset[0][ind] = new Matrix(rows, cols, 1);
-		dataset[1][ind] = new Matrix(10, 1, 1);
-		dataset[1][ind]->Reset();
+		dataset[0][ind] = new Matrix(rows, cols);
+		dataset[1][ind] = new Matrix(10, 1);
 		char* token = strtok(line, ",");
 		while (token != nullptr)
 		{
@@ -89,9 +88,8 @@ Matrix*** LoadCustom(const char* path, const int dataLength, const int format2D)
 
 		if (S_ISREG(statbuf.st_mode))
 		{
-			dataset[0][ind] = new Matrix(rows, cols, 1);
-			dataset[1][ind] = new Matrix(9, 1, 1);
-			dataset[1][ind]->Reset();
+			dataset[0][ind] = new Matrix(rows, cols);
+			dataset[1][ind] = new Matrix(9, 1);
 
 			Matrix* m = Imagery::LoadImageAsMatrix(filePath);
 			for (int i = 0; i < rows * cols; i++)
@@ -149,9 +147,8 @@ Matrix*** LoadCustom3(const char* path, int dataLength, int format2D)
 
 		if (S_ISREG(statbuf.st_mode))
 		{
-			dataset[0][ind] = new Matrix(rows, cols, 1);
-			dataset[1][ind] = new Matrix(10, 1, 1);
-			dataset[1][ind]->Reset();
+			dataset[0][ind] = new Matrix(rows, cols);
+			dataset[1][ind] = new Matrix(10, 1);
 
 			Matrix* m = Imagery::LoadImageAsMatrix(filePath);
 			for (int i = 0; i < rows * cols; i++)

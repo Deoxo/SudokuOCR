@@ -16,7 +16,7 @@ namespace Solver
 
 	Matrix* ArrayToMatrix(const char* mat, int size)
 	{
-		Matrix* mat2 = new Matrix(size, size, 1);
+		Matrix* mat2 = new Matrix(size, size);
 
 		int lim = size * size;
 

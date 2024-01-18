@@ -185,10 +185,14 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	Matrix** borderlessCells = Imagery::CropBorders((const Matrix**) cells, BORDER_CROP_PERCENTAGE);
 	Matrix** resizedCells = Imagery::ResizeCellsTo28x28((const Matrix**) borderlessCells);
 	bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) resizedCells, EMPTY_CELL_THRESHOLD);
-	Matrix** centeredCells = Imagery::CenterCells((const Matrix**) resizedCells, emptyCells);
+
+	for (int i = 0; i < 81; ++i)
+		if (!emptyCells[i])
+			borderlessCells[i]->SaveAsImg(savePath, "10-" + QString::number(i / 10) + QString::number(i % 10) + "");
+	Matrix** cellsDigits = Imagery::ExtractAndCenterCellsDigits((const Matrix**) resizedCells, emptyCells);
 
 	// Digit recognition
-	Matrix* digits = new Matrix(9, 9, 1);
+	Matrix* digits = new Matrix(9, 9);
 	NeuralNetwork* nn = NeuralNetwork::LoadFromFile("./nn3.bin");
 	for (int i = 0; i < 81; i++)
 	{
@@ -197,11 +201,11 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 			digits->data[i] = 0;
 			continue;
 		}
-		const QString cellName = "10-" + QString::number(i / 10) + QString::number(i % 10) + "";
-		centeredCells[i]->SaveAsImg(savePath, cellName);
+		const QString cellName = "11-" + QString::number(i / 10) + QString::number(i % 10) + "";
+		cellsDigits[i]->SaveAsImg(savePath, cellName);
 
-		*centeredCells[i] *= 1.f / 255.f;
-		digits->data[i] = (float) nn->Predict(*centeredCells[i]) + 1;
+		*cellsDigits[i] *= 1.f / 255.f;
+		digits->data[i] = (float) nn->Predict(*cellsDigits[i]) + 1;
 	}
 
 	// Free memory
@@ -211,12 +215,12 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	{
 		delete cells[i];
 		delete borderlessCells[i];
-		delete centeredCells[i];
+		delete cellsDigits[i];
 		delete resizedCells[i];
 	}
 	delete[] cells;
 	delete[] borderlessCells;
-	delete[] centeredCells;
+	delete[] cellsDigits;
 	delete[] resizedCells;
 	delete emptyCells;
 
