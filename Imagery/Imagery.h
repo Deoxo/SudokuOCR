@@ -197,6 +197,8 @@ namespace Imagery
 
 	// Compute the distance between two points
 	[[nodiscard]] float Dist(const QPoint& a, const QPoint& b);
+
+	Matrix** CenterAndResizeDigits(const Matrix** cells, const bool* emptyCells);
 }
 
 #endif //SUDOKUOCR_IMAGERY_H

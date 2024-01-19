@@ -238,17 +238,17 @@ void Custom(const int saveNeuralNetwork)
 
 void Custom3(const int saveNeuralNetwork)
 {
-	const int numData = 32260;
-	const int numTrainingSets = 32000;//17600;
+	const int numData = 30400;
+	const int numTrainingSets = 29000;//17600;
 	const int numInputsNodes = 784, numHiddenNodes = 100, numOutputsNodes = 9;
 	const int batchSize = 100;
-	const int numberOfEpochs = 15;
+	const int numberOfEpochs = 5;
 	const float dropoutRate = .4f;
 	const float learningRate = 1.f;
 
-	Matrix*** MNIST = LoadCustom3("../datasets/custom3", numData, 0);
-	const Matrix** inputs = (const Matrix**) MNIST[0];
-	const Matrix** outputs = (const Matrix**) MNIST[1];
+	Matrix*** dataset = LoadCustom3("../datasets/custom3", numData, 0);
+	const Matrix** inputs = (const Matrix**) dataset[0];
+	const Matrix** outputs = (const Matrix**) dataset[1];
 
 
 	NeuralNetwork* network = new NeuralNetwork(Adam, MSE, learningRate);

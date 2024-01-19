@@ -177,7 +177,7 @@ namespace GridDetection
 			double x1, y1, x2, y2;
 			const float theta = houghLine->theta;
 			const float rho = houghLine->rho;
-			if (std::abs(theta) < M_PI / 4.0 || std::abs(theta) > 3.0 * M_PI / 4.0)
+			if (std::abs(theta) < M_PIf / 4.0 || std::abs(theta) > 3.0 * M_PIf / 4.0)
 			{
 				// Line is closer to horizontal, solve for y
 				y1 = 0;
@@ -261,7 +261,7 @@ namespace GridDetection
 					// Only consider intersections between perpendicular lines
 					const float theta1 = atan2f((float) (line1.y1 - line1.y2), (float) (line1.x1 - line1.x2));
 					const float theta2 = atan2f((float) (line2.y1 - line2.y2), (float) (line2.x1 - line2.x2));
-					if (std::abs(theta1 - theta2) < M_PI / 3.f)
+					if (std::abs(theta1 - theta2) < M_PIf / 3.f)
 						continue;
 
 					// Compute intersection point
@@ -580,7 +580,7 @@ namespace GridDetection
 		Matrix** centeredCells = new Matrix* [81];
 		for (int i = 0; i < 81; ++i)
 		{
-			centeredCells[i] = new Matrix(28, 28);
+			centeredCells[i] = Matrix::CreateSameSize(*cells[i]);
 
 			// Skip empty cells
 			if (emptyCells[i])
@@ -590,7 +590,14 @@ namespace GridDetection
 			}
 
 			// Get the main group of pixels
-			std::list<QPoint> mainPoints = GetMainPixelsGroup(*cells[i], 2);
+			std::list<std::list<QPoint>> pixelGroups = GetPixelGroups(*cells[i], 2);
+			// Group with most elements
+			std::list<QPoint>& mainPoints = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
+															  [](const std::list<QPoint>& a,
+																 const std::list<QPoint>& b)
+															  {
+																  return a.size() < b.size();
+															  });
 
 			// Compute the center of the digit
 			int minX = 28, maxX = 0, minY = 28, maxY = 0;
@@ -732,7 +739,14 @@ namespace GridDetection
 		Matrix* res = Matrix::CreateSameSize(img);
 
 		// Group with most elements
-		std::list<QPoint> mainGroup = GetMainPixelsGroup(img, halfWindowSize, target);
+		std::list<std::list<QPoint>> pixelGroups = GetPixelGroups(img, halfWindowSize, target);
+		// Group with most elements
+		std::list<QPoint>& mainGroup = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
+														 [](const std::list<QPoint>& a,
+															const std::list<QPoint>& b)
+														 {
+															 return a.size() < b.size();
+														 });
 
 		// Write the main group to the result matrix
 		for (const QPoint& pixel : mainGroup)
@@ -751,7 +765,7 @@ namespace GridDetection
 	}
 
 	// Returns the main group of contiguous pixels in the image
-	std::list<QPoint> GetMainPixelsGroup(const Matrix& img, const int halfWindowSize, const float target)
+	std::list<std::list<QPoint>> GetPixelGroups(const Matrix& img, int halfWindowSize, float target)
 	{
 		Matrix* tmp = Matrix::CreateSameSize(img);
 		img.CopyValuesTo(*tmp);
@@ -770,16 +784,8 @@ namespace GridDetection
 			}
 		}
 
-		// Group with most elements
-		std::list<QPoint>& mainGroup = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
-														 [](const std::list<QPoint>& a,
-															const std::list<QPoint>& b)
-														 {
-															 return a.size() < b.size();
-														 });
-
 		delete tmp;
-		return mainGroup;
+		return pixelGroups;
 	}
 
 	// Returns the point that is the farthest from all anchors
@@ -826,6 +832,50 @@ namespace GridDetection
 		anchors.push_back(corner4);
 
 		return anchors;
+	}
+
+
+	Matrix** ExtractDigits(const Matrix** cells, const bool* emptyCells)
+	{
+		Matrix** digits = new Matrix* [81];
+		for (int i = 0; i < 81; ++i)
+		{
+			digits[i] = Matrix::CreateSameSize(*cells[i]);
+			if (emptyCells[i])
+				continue;
+			std::list<std::list<QPoint>> pixelGroups = GetPixelGroups(*cells[i],
+																	  (int) std::min(cells[i]->cols, cells[i]->rows) /
+																	  14.f);
+			const int n = (int) pixelGroups.size();
+			float groupsAvgCenterDist[n];
+			int groupScores[n];
+			int groupID = 0;
+			for (const auto& pixelGroup : pixelGroups)
+			{
+				groupsAvgCenterDist[groupID] = 0;
+				const QPoint imgCenter(cells[i]->cols / 2, cells[i]->rows / 2);
+				for (const auto& p : pixelGroup)
+					groupsAvgCenterDist[groupID] += Imagery::Dist(p, imgCenter);
+				groupsAvgCenterDist[groupID] /= (float) pixelGroup.size();
+				const float distRatio = 1 - groupsAvgCenterDist[groupID] / Imagery::Dist(QPoint(0, 0), imgCenter);
+				groupScores[groupID] = (int) ((float) pixelGroup.size() * distRatio * distRatio * distRatio);
+				groupID++;
+			}
+			int bestGroupID = 0;
+			int bestGroupScore = groupScores[0];
+			for (int j = 1; j < n; ++j)
+			{
+				if (groupScores[j] > bestGroupScore)
+				{
+					bestGroupID = j;
+					bestGroupScore = groupScores[j];
+				}
+			}
+			for (const auto& p : *std::next(pixelGroups.begin(), bestGroupID))
+				digits[i]->data[p.y() * digits[i]->cols + p.x()] = 255.f;
+		}
+
+		return digits;
 	}
 }
 

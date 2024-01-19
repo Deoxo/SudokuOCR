@@ -38,9 +38,11 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	StepCompletedWrapper(*m, "0-grayscale", savePath);
 	//printf("Standard deviation: %f\n", StandardDeviation(m, 5));
 
+	const int mi = std::min(img->cols, img->rows);
+
 	// Noise reduction
 	Matrix* bilaterallyFiltered = Matrix::CreateSameSize(*m);
-	Imagery::BilateralFilter(*m, *bilaterallyFiltered, BIL_FIL_DIAM, BIL_FIL_SIG_COL, BIL_FIL_SIG_SPACE);
+	Imagery::BilateralFilter(*m, *bilaterallyFiltered, (int)((float)mi / 500.f * BIL_FIL_DIAM), BIL_FIL_SIG_COL, BIL_FIL_SIG_SPACE);
 	StepCompletedWrapper(*bilaterallyFiltered, "1.0-bilaterallyFiltered", savePath);
 
 	// Opening
@@ -55,7 +57,7 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	StepCompletedWrapper(*eroded0, "1.2-eroded", savePath);
 
 	// Blur
-	Matrix* blurred = Imagery::Blur(*eroded0, 5);
+	Matrix* blurred = Imagery::Blur(*eroded0, GAUSS_BLUR_SIZE);
 	StepCompletedWrapper(*blurred, "2-blurred", savePath);
 
 	// Binarize
@@ -103,7 +105,7 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 
 	// Canny
 	Matrix* canny = Matrix::CreateSameSize(*dilated);
-	Imagery::Canny(*dilated, *canny, 50, 150);
+	Imagery::Canny(*dilated, *canny, CANNY_THRESHOLD1, CANNY_THRESHOLD2);
 	StepCompletedWrapper(*canny, "6.0-canny", savePath);
 
 	Square* bestSquare = new Square();
@@ -181,14 +183,15 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 
 	// Split the Sudoku into cells
 	Matrix** cells = Imagery::Split(*perspective);
-	Matrix** borderlessCells = Imagery::CropBorders((const Matrix**) cells, BORDER_CROP_PERCENTAGE);
-	Matrix** resizedCells = Imagery::ResizeCellsTo28x28((const Matrix**) borderlessCells);
-	bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) resizedCells, EMPTY_CELL_THRESHOLD);
-
+	const bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) cells, EMPTY_CELL_THRESHOLD);
+	Matrix** cellsDigits0 = GridDetection::ExtractDigits((const Matrix**) cells, emptyCells);
 	for (int i = 0; i < 81; ++i)
 		if (!emptyCells[i])
-			borderlessCells[i]->SaveAsImg(savePath, "10-" + QString::number(i / 10) + QString::number(i % 10) + "");
-	Matrix** cellsDigits = GridDetection::ExtractAndCenterCellsDigits((const Matrix**) resizedCells, emptyCells);
+			cellsDigits0[i]->SaveAsImg(savePath, "10-" + QString::number(i / 10) + QString::number(i % 10));
+	Matrix** cellsDigits = Imagery::CenterAndResizeDigits((const Matrix**) cellsDigits0, emptyCells);
+	for (int i = 0; i < 81; ++i)
+		if (!emptyCells[i])
+			cellsDigits[i]->SaveAsImg(savePath, "11-" + QString::number(i / 10) + QString::number(i % 10));
 
 	// Digit recognition
 	Matrix* digits = new Matrix(9, 9);
@@ -200,8 +203,6 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 			digits->data[i] = 0;
 			continue;
 		}
-		const QString cellName = "11-" + QString::number(i / 10) + QString::number(i % 10) + "";
-		cellsDigits[i]->SaveAsImg(savePath, cellName);
 
 		*cellsDigits[i] /= 255.f;
 		digits->data[i] = (float) nn->Predict(*cellsDigits[i]) + 1;
@@ -213,14 +214,13 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	for (int i = 0; i < 81; ++i)
 	{
 		delete cells[i];
-		delete borderlessCells[i];
+		delete cellsDigits0[i];
 		delete cellsDigits[i];
-		delete resizedCells[i];
 	}
 	delete[] cells;
-	delete[] borderlessCells;
+	delete[] cellsDigits0;
 	delete[] cellsDigits;
-	delete[] resizedCells;
+	//delete[] resizedCells;
 	delete emptyCells;
 
 	emit OnDigitsRecognized(digits);

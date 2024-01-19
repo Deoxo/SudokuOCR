@@ -2,11 +2,11 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include "Imagery/Imagery.h"
-#include "Tools/List.h"
 #include "Imagery/GridDetection.h"
 #include "Tools/Settings.h"
 #include "Network.h"
 #include <QDebug>
+#include <iostream>
 
 char* FileName(const char* path)
 {
@@ -50,9 +50,11 @@ DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePat
 	Matrix* m = Imagery::ConvertToGrayscale(*img);
 	//printf("Standard deviation: %f\n", StandardDeviation(m, 5));
 
+	const int mi = std::min(img->cols, img->rows);
 	// Noise reduction
 	Matrix* bilaterallyFiltered = Matrix::CreateSameSize(*m);
-	Imagery::BilateralFilter(*m, *bilaterallyFiltered, BIL_FIL_DIAM, BIL_FIL_SIG_COL, BIL_FIL_SIG_SPACE);
+	Imagery::BilateralFilter(*m, *bilaterallyFiltered, (int) ((float) mi / 500.f * BIL_FIL_DIAM), BIL_FIL_SIG_COL,
+							 BIL_FIL_SIG_SPACE);
 
 	// Opening
 	// Dilate
@@ -64,7 +66,7 @@ DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePat
 	Imagery::Dilate(*dilated0, *eroded0, DELATE_KERNEL_SIZE);
 
 	// Blur
-	Matrix* blurred = Imagery::Blur(*eroded0, 5);
+	Matrix* blurred = Imagery::Blur(*eroded0, GAUSS_BLUR_SIZE);
 
 	// Binarize
 	Matrix* binarized = Matrix::CreateSameSize(*m);
@@ -107,7 +109,7 @@ DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePat
 
 	// Canny
 	Matrix* canny = Matrix::CreateSameSize(*dilated);
-	Imagery::Canny(*dilated, *canny, 50, 150);
+	Imagery::Canny(*dilated, *canny, CANNY_THRESHOLD1, CANNY_THRESHOLD2);
 
 	Square* bestSquare = new Square();
 	Matrix* mainPixels = GridDetection::ExtractBiggestPixelGroupAndCorners(*canny, 3, bestSquare);
@@ -143,7 +145,6 @@ DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePat
 		delete dilated;
 		delete canny;
 		delete e;
-		delete canny;
 		delete mainPixels;
 		delete[] lines;
 		delete[] cartesianLines;
@@ -193,43 +194,32 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 
 	// Split the Sudoku into cells
 	Matrix** cells = Imagery::Split(*perspective);
-	Matrix** borderlessCells = Imagery::CropBorders((const Matrix**) cells, BORDER_CROP_PERCENTAGE);
-	Matrix** resizedCells = Imagery::ResizeCellsTo28x28((const Matrix**) borderlessCells);
-	bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) resizedCells, EMPTY_CELL_THRESHOLD);
-	Matrix** centeredCells = GridDetection::ExtractAndCenterCellsDigits((const Matrix**) resizedCells, emptyCells);
+	const bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) cells, EMPTY_CELL_THRESHOLD);
+	Matrix** cellsDigits0 = GridDetection::ExtractDigits((const Matrix**) cells, emptyCells);
+	Matrix** cellsDigits = Imagery::CenterAndResizeDigits((const Matrix**) cellsDigits0, emptyCells);
 
 	// Digit recognition
-	Matrix digits(9, 9);
-	NeuralNetwork* nn = NeuralNetwork::LoadFromFile("./nn.bin");
 	for (int i = 0; i < 81; i++)
 	{
 		if (emptyCells[i])
-		{
-			digits.data[i] = 0;
 			continue;
-		}
+
 		char* cellName = (char*) malloc(sizeof(char) * 40);
 		sprintf(cellName, "digit_%i_%i_%i.png", imgDigits[i], imgId, i);
-		centeredCells[i]->SaveAsImg(savePath, cellName);
-
-		*centeredCells[i] /= 255.f;
-		digits.data[i] = (float) nn->Predict(*centeredCells[i]) + 1;
+		cellsDigits[i]->SaveAsImg(savePath, cellName);
 	}
 
 	// Free memory
 	delete perspective;
-	delete nn;
 	for (int i = 0; i < 81; ++i)
 	{
 		delete cells[i];
-		delete borderlessCells[i];
-		delete centeredCells[i];
-		delete resizedCells[i];
+		delete cellsDigits0[i];
+		delete cellsDigits[i];
 	}
 	delete[] cells;
-	delete[] borderlessCells;
-	delete[] centeredCells;
-	delete[] resizedCells;
+	delete[] cellsDigits0;
+	delete[] cellsDigits;
 	delete emptyCells;
 }
 

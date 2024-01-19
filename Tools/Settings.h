@@ -4,7 +4,6 @@
 
 #ifndef S3PROJECT_SETTINGS_H
 #define S3PROJECT_SETTINGS_H
-# define M_PI           3.14159265358979323846  /* pi */
 #define __FILENAME__ (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 
 #if USE_SSE2 && USE_AVX2
@@ -17,14 +16,11 @@
 #define POOL_FILTERS_SIZE 2
 #define POOL_STRIDE 2
 
-#define WINW 700
-#define WINH 700
-
 #define SAVE_FOLD "out"
 
 #define BIL_FIL_DIAM 3
-#define BIL_FIL_SIG_COL 3
-#define BIL_FIL_SIG_SPACE 3
+#define BIL_FIL_SIG_COL 3.f
+#define BIL_FIL_SIG_SPACE 3.f
 
 #define ADAPTIVE_THRESH_BLOCK_SIZE 11
 #define ADAPTIVE_THRESH_STRENGTH 3
@@ -34,12 +30,16 @@
 #define ADAPTIVE_THRESHS_HIGH 255
 #define ADAPTIVE_THRESHS_LOW 0
 
-#define DELATE_KERNEL_SIZE 3
+#define CANNY_THRESHOLD1 50
+#define CANNY_THRESHOLD2 150
+
+#define DELATE_KERNEL_SIZE 2
 
 #define SQUARES_EDGE_DIFF_TOL .8f
 
 #define GAUSS_BLUR_SIGMA 1.5f
 #define GAUSS_BLUR_K 1
+#define GAUSS_BLUR_SIZE 5
 
 #define MIN_LINES_RHO_DIST 40
 #define MIN_LINES_THETA_DIST 1.04719758033f // 60 degrees

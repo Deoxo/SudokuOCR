@@ -40,9 +40,11 @@ namespace GridDetection
 	Matrix*
 	ExtractBiggestPixelGroupAndCorners(const Matrix& img, int halfWindowSize, Square* corners, float target = 255.f);
 
-	std::list<QPoint> GetMainPixelsGroup(const Matrix& img, int halfWindowSize, float target = 255.f);
+	std::list<std::list<QPoint>> GetPixelGroups(const Matrix& img, int halfWindowSize, float target = 255.f);
 
 	std::list<QPoint> AurelCornerDetection(std::list<QPoint>& points);
+
+	Matrix** ExtractDigits(const Matrix** cells, const bool* emptyCells);
 }
 
 #endif //S3PROJECT_GRIDDETECTION_H

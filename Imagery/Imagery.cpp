@@ -214,7 +214,7 @@ namespace Imagery
 	void Canny(const Matrix& m, Matrix& output, const float lowThreshold, const float highThreshold)
 	{
 		// Canny edge detection algorithm
-		Matrix* blurred = Blur(m, 5);
+		Matrix* blurred = Blur(m, GAUSS_BLUR_SIZE);
 		Matrix** gradients = GetGradients(*blurred);
 		*gradients[0] *= 255.f / gradients[0]->Max();
 		Matrix* nonMaxSuppressed = Matrix::CreateSameSize(m);
@@ -274,7 +274,7 @@ namespace Imagery
 		// Convert angles to degrees in [0, 180[
 		for (int i = 0; i < angles.matrixSize; i++)
 		{
-			angles.data[i] = (float) (angles.data[i] * 180 / M_PI);
+			angles.data[i] = (float) (angles.data[i] * 180 / M_PIf);
 			if (angles.data[i] < 0)
 				angles.data[i] += 180;
 			if (angles.data[i] < 0 || angles.data[i] > 180)
@@ -488,7 +488,7 @@ namespace Imagery
 			// Skip weird lines
 			if (lines[i].theta == INFINITY || lines[i].theta < 0 || lines[i].theta > 180)
 				continue;
-			angles[i] = (int) (lines[i].theta * 180 / M_PI); // convert to degrees
+			angles[i] = (int) (lines[i].theta * 180 / M_PIf); // convert to degrees
 
 			// Remap angle to [-45, 45]
 			if (angles[i] > 90)
@@ -864,10 +864,14 @@ namespace Imagery
 		bool* emptyCells = new bool[81];
 		for (int i = 0; i < 81; ++i)
 		{
-			Matrix center(20, 20);
-			for (int j = 0; j < 20; ++j)
-				for (int k = 0; k < 20; ++k)
-					center.data[j * center.cols + k] = cells[i]->data[(j + 4) * cells[i]->cols + k + 4];
+			const int r = cells[i]->rows / 1.4f;
+			const int c = cells[i]->cols / 1.4f;
+			const int dr = (cells[i]->rows - r) / 2;
+			const int dc = (cells[i]->cols - c) / 2;
+			Matrix center(r, c);
+			for (int j = 0; j < r; ++j)
+				for (int k = 0; k < c; ++k)
+					center.data[j * center.cols + k] = cells[i]->data[(j + dr) * cells[i]->cols + k + dc];
 
 			emptyCells[i] = center.Sum() < emptinessThreshold * (float) cells[i]->matrixSize * 255;
 		}
@@ -1007,7 +1011,7 @@ namespace Imagery
 
 	Matrix* Rotation(const Matrix& matrix, const Square& s, const double degree)
 	{
-		double angle = (-1) * degree * (M_PI / 180);
+		double angle = (-1) * degree * (M_PIf / 180);
 		double cos_val = cos(angle);
 		double sin_val = sin(angle);
 
@@ -1326,5 +1330,63 @@ namespace Imagery
 		const float dy = (float) (a.y - b.y);
 
 		return std::sqrt(dx * dx + dy * dy);
+	}
+
+	Matrix** CenterAndResizeDigits(const Matrix** cells, const bool* emptyCells)
+	{
+		Matrix** centeredDigits = new Matrix* [81];
+		for (int i = 0; i < 81; ++i)
+		{
+			centeredDigits[i] = new Matrix(28, 28);
+			if (emptyCells[i])
+				continue;
+			// index of first column containing at least one white pixel
+			int sx = -1;
+			for (int x = 0; x < cells[i]->cols && sx == -1; ++x)
+			{
+				for (int y = 0; y < cells[i]->rows; ++y)
+					if (cells[i]->data[y * cells[i]->cols + x] != 0)
+						sx = x;
+			}
+			// index of last column containing at least one white pixel
+			int ex = -1;
+			for (int x = cells[i]->cols - 1; x >= 0 && ex == -1; x--)
+			{
+				for (int y = 0; y < cells[i]->rows; ++y)
+					if (cells[i]->data[y * cells[i]->cols + x] != 0)
+						ex = x;
+			}
+			// index of first row containing at least one white pixel
+			int sy = -1;
+			for (int y = 0; y < cells[i]->rows && sy == -1; ++y)
+			{
+				for (int x = 0; x < cells[i]->cols; ++x)
+					if (cells[i]->data[y * cells[i]->cols + x] != 0)
+						sy = y;
+			}
+			// index of last row containing at least one white pixel
+			int ey = -1;
+			for (int y = cells[i]->rows - 1; y >= 0 && ey == -1; y--)
+			{
+				for (int x = 0; x < cells[i]->cols; ++x)
+					if (cells[i]->data[y * cells[i]->cols + x] != 0)
+						ey = y;
+			}
+
+			const float rx = (float) (ex - sx) / 17.f;
+			const float ry = (float) (ey - sy) / 17.f;
+			const float fsy = (float) sy;
+			const float fsx = (float) sx;
+			for (int y = 5; y < 28 - 5; ++y)
+			{
+				for (int x = 5; x < 28 - 5; ++x)
+				{
+					centeredDigits[i]->data[y * 28 + x] = cells[i]->data[
+							(int) (fsy + ((float) y - 5) * ry) * cells[i]->cols + (int) (fsx + (float) (x - 5) * rx)];
+				}
+			}
+		}
+
+		return centeredDigits;
 	}
 }
