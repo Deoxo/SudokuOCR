@@ -3,6 +3,7 @@
 //
 
 #include <QLineF>
+#include <iostream>
 #include "GridDetection.h"
 #include "../Tools/Settings.h"
 #include "Imagery.h"
@@ -241,110 +242,6 @@ namespace GridDetection
 		*numIntersections = numIntersections2;
 	}
 
-	List* FindIntersections(Line* cartesianLines, const int numLines, const int imageWidth, const int imgHeight,
-							int* numIntersections)
-	{
-		List* intersections = ListCreate();
-
-		// Find intersections
-		for (int i = 0; i < numLines; i++)
-			for (int j = i + 1; j < numLines; j++)
-			{
-				Line line1 = cartesianLines[i];
-				Line line2 = cartesianLines[j];
-				const int denominator = (line1.x1 - line1.x2) * (line2.y1 - line2.y2) -
-										(line1.y1 - line1.y2) * (line2.x1 - line2.x2);
-
-				// If the denominator is 0, the lines are parallel
-				if (denominator != 0)
-				{
-					// Only consider intersections between perpendicular lines
-					const float theta1 = atan2f((float) (line1.y1 - line1.y2), (float) (line1.x1 - line1.x2));
-					const float theta2 = atan2f((float) (line2.y1 - line2.y2), (float) (line2.x1 - line2.x2));
-					if (std::abs(theta1 - theta2) < M_PIf / 3.f)
-						continue;
-
-					// Compute intersection point
-					const int x = ((line1.x1 * line1.y2 - line1.y1 * line1.x2) * (line2.x1 - line2.x2) -
-								   (line1.x1 - line1.x2) * (line2.x1 * line2.y2 - line2.y1 * line2.x2)) / denominator;
-
-					if (x < 0 || x > imageWidth)
-						continue;
-
-					const int y = ((line1.x1 * line1.y2 - line1.y1 * line1.x2) * (line2.y1 - line2.y2) -
-								   (line1.y1 - line1.y2) * (line2.x1 * line2.y2 - line2.y1 * line2.x2)) / denominator;
-
-					// Discard points outside the image
-					if (y < 0 || y > imgHeight)
-						continue;
-
-					// Add the intersection to the list
-					Point* pt = new Point();
-					pt->x = x;
-					pt->y = y;
-					ListAdd(intersections, pt);
-					//printf("Intersection: (%d, %d)\n", x, y);
-					(*numIntersections)++;
-				}
-			}
-
-		printf("Num intersections: %d\n", *numIntersections);
-		FilterIntersections(intersections, numIntersections);
-		printf("Num filtered intersections: %d\n", *numIntersections);
-
-		return intersections;
-	}
-
-	List* FindIntersections2(Line* cartesianLines, const int numLines, const int imageWidth, const int imgHeight)
-	{
-		List* intersections = ListCreate();
-		const float wf = (float) imageWidth;
-		const float hf = (float) imgHeight;
-
-		// Find intersections
-		for (int i = 0; i < numLines; i++)
-		{
-			List* lineIntersections = ListCreate();
-			for (int j = 0; j < numLines; j++)
-			{
-				const Line line1 = cartesianLines[i];
-				const Line line2 = cartesianLines[j];
-
-				const float x12 = (float) (line1.x1 - line1.x2);
-				const float x34 = (float) (line2.x1 - line2.x2);
-				const float y12 = (float) (line1.y1 - line1.y2);
-				const float y34 = (float) (line2.y1 - line2.y2);
-				const float c = x12 * y34 - y12 * x34;
-				const float a = (float) (line1.x1 * line1.y2 - line1.y1 * line1.x2);
-				const float b = (float) (line2.x1 * line2.y2 - line2.y1 * line2.x2);
-				if (c != 0)
-				{
-					// Intersection point
-					const float x = (a * x34 - b * x12) / c;
-					const float y = (a * y34 - b * y12) / c;
-
-					// Discard points outside the image
-					if (x < 0 || x >= wf)
-						continue;
-					if (y < 0 || y >= hf)
-						continue;
-
-					// Add the intersection to the list
-					Intersection* inter = new Intersection();
-					Point* pt = new Point();
-					pt->x = (int) x;
-					pt->y = (int) y;
-					inter->point = pt;
-					inter->line2Id = j;
-					ListAdd(lineIntersections, inter);
-				}
-			}
-			ListAdd(intersections, lineIntersections);
-		}
-
-		return intersections;
-	}
-
 	void InsertionSort(float* array, const int array_size)
 	{
 		for (int i = 1; i < array_size; i++)
@@ -427,113 +324,6 @@ namespace GridDetection
 		return 1;
 	}
 
-	List*
-	GetSquares(const List* intersections, const int numIntersections, const float tolerance, int* numSquares)
-	{
-		List* squares = ListCreate();
-		List* lastSquare = squares;
-
-		for (int i = 0; i < numIntersections; ++i)
-		{
-			const List* li = ListGetList(intersections, i);
-			for (int j = i + 1; j < numIntersections; ++j)
-			{
-				const List* lj = ListGetList(li, j - i - 1);
-				for (int k = j + 1; k < numIntersections; ++k)
-				{
-					const List* lk = ListGetList(lj, k - j - 1);
-					for (int l = k + 1; l < numIntersections; ++l)
-					{
-						const List* ll = ListGetList(lk, l - k - 1);
-
-						Square* s = new Square();
-						s->bottomRight = *(Point*) li->data;
-						s->bottomLeft = *(Point*) lj->data;
-						s->topRight = *(Point*) lk->data;
-						s->topLeft = *(Point*) ll->data;
-						if (IsSquare(s, tolerance))
-						{
-							// Add the square to the list
-							ListAdd(lastSquare, s);
-							lastSquare = lastSquare->next;
-							(*numSquares)++;
-						}
-						else delete s;
-					}
-				}
-			}
-		}
-
-		return squares;
-	}
-
-	List*
-	GetSquares2(const List* intersections, const float tolerance, int* numSquares, const int numLines)
-	{
-		List* squares = ListCreate();
-		List* lastSquare = squares;
-
-		for (int i = 0; i < numLines; ++i)
-		{
-			List* intersection1_li = ((List*) ListGet(intersections, i))->next;
-			while (intersection1_li != nullptr)
-			{
-				Intersection* inter = (Intersection*) intersection1_li->data;
-				Point* pt1 = inter->point;
-
-				List* intersection2_li = ((List*) ListGet(intersections, inter->line2Id))->next;
-				while (intersection2_li != nullptr)
-				{
-					Intersection* inter2 = (Intersection*) intersection2_li->data;
-					Point* pt2 = inter2->point;
-					if (inter2->line2Id == i)
-						break;
-
-					List* intersection3_li = ((List*) ListGet(intersections, inter2->line2Id))->next;
-					while (intersection3_li != nullptr)
-					{
-						Intersection* inter3 = (Intersection*) intersection3_li->data;
-						Point* pt3 = inter3->point;
-
-						if (inter3->line2Id == i || inter3->line2Id == inter->line2Id)
-							break;
-
-						List* intersection4_li = ((List*) ListGet(intersections, inter3->line2Id))->next;
-						while (intersection4_li != nullptr)
-						{
-							Intersection* inter4 = (Intersection*) intersection4_li->data;
-							Point* pt4 = inter4->point;
-
-							Square* s = new Square();
-							s->topRight = *pt1;
-							s->bottomRight = *pt2;
-							s->bottomLeft = *pt3;
-							s->topLeft = *pt4;
-							if (i == inter4->line2Id && IsSquare(s, tolerance))
-							{
-								// Add the square to the list
-								ListAdd(lastSquare, s);
-								lastSquare = lastSquare->next;
-								(*numSquares)++;
-							}
-							else delete s;
-
-							intersection4_li = intersection4_li->next;
-						}
-
-						intersection3_li = intersection3_li->next;
-					}
-
-					intersection2_li = intersection2_li->next;
-				}
-
-				intersection1_li = intersection1_li->next;
-			}
-		}
-
-		return squares;
-	}
-
 	int SquareFitness(const Square* s, const Matrix& dilated)
 	{
 		float edgeDistances[6] = {
@@ -553,125 +343,6 @@ namespace GridDetection
 						 Imagery::SegmentBlackPercentage(dilated, &s->topLeft, &s->topRight)) / 4.f;
 
 		return (int) (edgeDistances[0] * edgeDistances[0] * p * p);
-	}
-
-	Square* FindBestSquare(const List* squares, int numSquares, const Matrix& dilated)
-	{
-		Square* bestSquare = nullptr;
-		const List* current = ListGetList(squares, 0);
-		int bestFitness = 0;
-		for (int i = 0; i < numSquares; i++)
-		{
-			Square* s = (Square*) current->data;
-			const int fitness = SquareFitness(s, dilated);
-			if (fitness > bestFitness)
-			{
-				bestFitness = fitness;
-				bestSquare = s;
-			}
-			current = current->next;
-		}
-
-		return bestSquare;
-	}
-
-	Matrix** ExtractAndCenterCellsDigits(const Matrix** cells, const bool* emptyCells)
-	{
-		Matrix** centeredCells = new Matrix* [81];
-		for (int i = 0; i < 81; ++i)
-		{
-			centeredCells[i] = Matrix::CreateSameSize(*cells[i]);
-
-			// Skip empty cells
-			if (emptyCells[i])
-			{
-				cells[i]->CopyValuesTo(*centeredCells[i]);
-				continue;
-			}
-
-			// Get the main group of pixels
-			std::list<std::list<QPoint>> pixelGroups = GetPixelGroups(*cells[i], 2);
-			// Group with most elements
-			std::list<QPoint>& mainPoints = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
-															  [](const std::list<QPoint>& a,
-																 const std::list<QPoint>& b)
-															  {
-																  return a.size() < b.size();
-															  });
-
-			// Compute the center of the digit
-			int minX = 28, maxX = 0, minY = 28, maxY = 0;
-			for (const QPoint& p : mainPoints)
-			{
-				const int x = p.x();
-				const int y = p.y();
-				centeredCells[i]->data[y * centeredCells[i]->cols + x] = 255;
-				if (x < minX)
-					minX = x;
-				if (x > maxX)
-					maxX = x;
-				if (y < minY)
-					minY = y;
-				if (y > maxY)
-					maxY = y;
-			}
-			const int centerCol = (int) ((float) (minX + maxX) / 2.f);
-			const int centerRow = (int) ((float) (minY + maxY) / 2.f);
-
-			// Compute the offset to center the digit
-			const int offsetCol = 14 - centerCol;
-			const int offsetRow = 14 - centerRow;
-
-			// Center the digit
-			Imagery::HorizontalOffset(*centeredCells[i], offsetCol);
-			Imagery::VerticalOffset(*centeredCells[i], offsetRow);
-		}
-
-		return centeredCells;
-	}
-
-	// Extract the Sudoku region from the straightened image
-	Matrix*
-	ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, const float rotationAngle)
-	{
-		const Point squareCenter = (Point) {
-				(sudokuEdges.topLeft.x + sudokuEdges.topRight.x + sudokuEdges.bottomLeft.x +
-				 sudokuEdges.bottomRight.x) / 4,
-				(sudokuEdges.topLeft.y + sudokuEdges.topRight.y + sudokuEdges.bottomLeft.y +
-				 sudokuEdges.bottomRight.y) / 4};
-		Square* rotatedSquare1 = Imagery::RotateSquare(sudokuEdges, squareCenter, rotationAngle);
-		Square* rotatedSquare = Imagery::Order(*rotatedSquare1, straightImage.cols, straightImage.rows);
-		delete rotatedSquare1;
-
-		printf("stopLeft: %i %i\n", rotatedSquare->topLeft.x, rotatedSquare->topLeft.y);
-		printf("stopRight: %i %i\n", rotatedSquare->topRight.x, rotatedSquare->topRight.y);
-		printf("sbottomLeft: %i %i\n", rotatedSquare->bottomLeft.x, rotatedSquare->bottomLeft.y);
-		printf("sbottomRight: %i %i\n", rotatedSquare->bottomRight.x, rotatedSquare->bottomRight.y);
-
-		const int sudoku_width = abs(rotatedSquare->topRight.x - rotatedSquare->topLeft.x);
-		const int sudoku_height = abs(rotatedSquare->bottomLeft.y - rotatedSquare->topLeft.y);
-		Matrix* result = new Matrix(sudoku_height, sudoku_width);
-
-		for (int y = 0; y < sudoku_height; y++)
-		{
-			for (int x = 0; x < sudoku_width; x++)
-			{
-				// Map coordinates from the original Sudoku edges to the rotated image
-				Point rotatedPoint = {rotatedSquare->topLeft.x + x, rotatedSquare->topLeft.y + y};
-
-				// Get pixel value from the straightened image and set it in the result matrix
-				const float pixelValue =
-						rotatedPoint.x < 0 || rotatedPoint.y < 0 || rotatedPoint.x >= straightImage.cols ||
-						rotatedPoint.y >= straightImage.rows ? 0
-															 : straightImage.data[rotatedPoint.y * straightImage.cols +
-																				  rotatedPoint.x];
-				result->data[y * result->cols + x] = pixelValue;
-			}
-		}
-
-		delete rotatedSquare;
-
-		return result;
 	}
 
 	// Returns the index of the closest point to the target point
@@ -740,32 +411,68 @@ namespace GridDetection
 
 		// Group with most elements
 		std::list<std::list<QPoint>> pixelGroups = GetPixelGroups(img, halfWindowSize, target);
-		// Group with most elements
-		std::list<QPoint>& mainGroup = *std::max_element(pixelGroups.begin(), pixelGroups.end(),
-														 [](const std::list<QPoint>& a,
-															const std::list<QPoint>& b)
-														 {
-															 return a.size() < b.size();
-														 });
+
+		pixelGroups.sort([](const std::list<QPoint>& a, const std::list<QPoint>& b)
+						 {
+							 return a.size() > b.size();
+						 });
+
+		// Select the group with the largest area which has at least 80% of the pixels of the largest group
+		const int maxGroupSize = (int) pixelGroups.front().size();
+		float maxArea = 0;
+		std::list<QPoint> aurelCorners;
+		int bestGroupIndex = 0;
+		int c = -1;
+		for (auto& pg : pixelGroups)
+		{
+			c++;
+			// Exit if the group is too small (as the groups are sorted by size, the following groups will be smaller, so we break)
+			if (pg.size() < maxGroupSize * .8f)
+				break;
+
+			std::list<QPoint> groupCorners = AurelCornerDetection(pg);
+			Square s;
+			s.topLeft = Point(*std::next(groupCorners.begin(), 0));
+			s.topRight = Point(*std::next(groupCorners.begin(), 1));
+			s.bottomLeft = Point(*std::next(groupCorners.begin(), 2));
+			s.bottomRight = Point(*std::next(groupCorners.begin(), 3));
+
+			float edgeDistances[6] = {
+					Imagery::Dist(s.topRight, s.bottomRight),
+					Imagery::Dist(s.bottomRight, s.bottomLeft),
+					Imagery::Dist(s.bottomLeft, s.topLeft),
+					Imagery::Dist(s.topLeft, s.topRight),
+					Imagery::Dist(s.topRight, s.bottomLeft),
+					Imagery::Dist(s.bottomRight, s.topLeft),
+			};
+			InsertionSort(edgeDistances, 6);
+
+			const float area = edgeDistances[0] * edgeDistances[1];
+			if (area > maxArea)
+			{
+				maxArea = area;
+				aurelCorners = groupCorners;
+			}
+		}
+
+		std::list<QPoint>& mainGroup = *std::next(pixelGroups.begin(), bestGroupIndex);
 
 		// Write the main group to the result matrix
 		for (const QPoint& pixel : mainGroup)
 			res->data[pixel.y() * res->cols + pixel.x()] = target;
 
-		// Find the corners
-		std::list<QPoint> aurelCorners = AurelCornerDetection(mainGroup);
-
 		// Write the corners to the result square
-		corners->topLeft = Point(*std::next(aurelCorners.begin(), 0));
-		corners->topRight = Point(*std::next(aurelCorners.begin(), 1));
-		corners->bottomLeft = Point(*std::next(aurelCorners.begin(), 2));
-		corners->bottomRight = Point(*std::next(aurelCorners.begin(), 3));
+		std::list<QPoint>::iterator it = aurelCorners.begin();
+		corners->topLeft = Point(*it++);
+		corners->topRight = Point(*it++);
+		corners->bottomLeft = Point(*it++);
+		corners->bottomRight = Point(*it++);
 
 		return res;
 	}
 
 	// Returns the main group of contiguous pixels in the image
-	std::list<std::list<QPoint>> GetPixelGroups(const Matrix& img, int halfWindowSize, float target)
+	std::list<std::list<QPoint>> GetPixelGroups(const Matrix& img, const int halfWindowSize, const float target)
 	{
 		Matrix* tmp = Matrix::CreateSameSize(img);
 		img.CopyValuesTo(*tmp);
@@ -789,7 +496,7 @@ namespace GridDetection
 	}
 
 	// Returns the point that is the farthest from all anchors
-	QPoint GetFarthestPointFromAnchors(std::list<QPoint>& anchors, const std::list<QPoint>& pts)
+	QPoint GetFarthestPointFromAnchors(const std::list<QPoint>& anchors, const std::list<QPoint>& pts)
 	{
 		int maxIndex = 0;
 		float maxDistSum = 0;
@@ -838,29 +545,44 @@ namespace GridDetection
 	Matrix** ExtractDigits(const Matrix** cells, const bool* emptyCells)
 	{
 		Matrix** digits = new Matrix* [81];
+		const int halfWindowSize = (int) ((float) std::min(cells[0]->cols, cells[0]->rows) / 14.f);
+		const QPoint cellCenter(cells[0]->cols / 2, cells[0]->rows / 2);
 		for (int i = 0; i < 81; ++i)
 		{
 			digits[i] = Matrix::CreateSameSize(*cells[i]);
+
+			// Skip empty cells
 			if (emptyCells[i])
 				continue;
-			std::list<std::list<QPoint>> pixelGroups = GetPixelGroups(*cells[i],
-																	  (int) std::min(cells[i]->cols, cells[i]->rows) /
-																	  14.f);
-			const int n = (int) pixelGroups.size();
+
+			// Get pixel groups
+			std::list<std::list<QPoint>> pixelGroups = GetPixelGroups(*cells[i], halfWindowSize);
+
+			// Extract the pixel group of the digit based on the fitness | fitness(group) = size * distRatio^3
+			// distRatio = 1 - avgDistFromCenter / maxDistFromCenter
+
+			const int n = (int) pixelGroups.size(); // Number of groups
 			float groupsAvgCenterDist[n];
 			int groupScores[n];
 			int groupID = 0;
 			for (const auto& pixelGroup : pixelGroups)
 			{
+				// Compute the average distance from the center of the cell
 				groupsAvgCenterDist[groupID] = 0;
-				const QPoint imgCenter(cells[i]->cols / 2, cells[i]->rows / 2);
 				for (const auto& p : pixelGroup)
-					groupsAvgCenterDist[groupID] += Imagery::Dist(p, imgCenter);
+					groupsAvgCenterDist[groupID] += Imagery::Dist(p, cellCenter);
 				groupsAvgCenterDist[groupID] /= (float) pixelGroup.size();
-				const float distRatio = 1 - groupsAvgCenterDist[groupID] / Imagery::Dist(QPoint(0, 0), imgCenter);
+
+				// Compute distRatio
+				const float distRatio = 1 - groupsAvgCenterDist[groupID] / Imagery::Dist(QPoint(0, 0), cellCenter);
+
+				//Compute fitness
 				groupScores[groupID] = (int) ((float) pixelGroup.size() * distRatio * distRatio * distRatio);
+
 				groupID++;
 			}
+
+			// Find best group
 			int bestGroupID = 0;
 			int bestGroupScore = groupScores[0];
 			for (int j = 1; j < n; ++j)
@@ -871,6 +593,8 @@ namespace GridDetection
 					bestGroupScore = groupScores[j];
 				}
 			}
+
+			// Write the best group to the result matrix
 			for (const auto& p : *std::next(pixelGroups.begin(), bestGroupID))
 				digits[i]->data[p.y() * digits[i]->cols + p.x()] = 255.f;
 		}

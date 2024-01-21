@@ -1,6 +1,4 @@
 #include <err.h>
-#include <sys/stat.h>
-#include <dirent.h>
 #include "Imagery/Imagery.h"
 #include "Imagery/GridDetection.h"
 #include "Tools/Settings.h"
@@ -48,7 +46,6 @@ DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePat
 	// Convert the image to grayscale and stores it in a matrix
 	Matrix* img = Imagery::LoadImageAsMatrix(imagePath);
 	Matrix* m = Imagery::ConvertToGrayscale(*img);
-	//printf("Standard deviation: %f\n", StandardDeviation(m, 5));
 
 	const int mi = std::min(img->cols, img->rows);
 	// Noise reduction
@@ -177,7 +174,7 @@ DetectionInfo* BordersDetection(const QString& imagePath, const QString& savePat
 	return detectionInfo;
 }
 
-void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int imgId, int* imgDigits)
+void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, const int imgId, int* imgDigits)
 {
 	const int sw = detectionInfo->e->cols, sh = detectionInfo->e->rows;
 	const int squareSize = std::min(sw, sh);
@@ -186,8 +183,10 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 	qDebug() << "Desired square";
 
 	// Extract the Sudoku from the image
-	Matrix* perspective = Imagery::PerspectiveTransform(*detectionInfo->e, *detectionInfo->bestSquare,
-														desiredSquare, squareSize);
+	const Matrix** tmp = new const Matrix* [1]{detectionInfo->e};
+	Matrix** p = Imagery::PerspectiveTransform(tmp, 1,
+											   desiredSquare, squareSize, *detectionInfo->bestSquare);
+	Matrix* perspective = p[0];
 	qDebug() << "8-perspective";
 	Imagery::RemoveLines(*perspective);
 	qDebug() << "9-removedLines";
@@ -217,6 +216,7 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, int i
 		delete cellsDigits0[i];
 		delete cellsDigits[i];
 	}
+	delete[] p;
 	delete[] cells;
 	delete[] cellsDigits0;
 	delete[] cellsDigits;
@@ -232,7 +232,7 @@ int countLines(const char* filename)
 
 	file = fopen(filename, "r"); // Open the file in read mode
 
-	if (file == NULL)
+	if (file == nullptr)
 	{
 		printf("Unable to open the file.\n");
 		return -1; // Return -1 to indicate an error

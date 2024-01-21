@@ -36,13 +36,12 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	Matrix* img = Imagery::LoadImageAsMatrix(imagePath);
 	Matrix* m = Imagery::ConvertToGrayscale(*img);
 	StepCompletedWrapper(*m, "0-grayscale", savePath);
-	//printf("Standard deviation: %f\n", StandardDeviation(m, 5));
 
 	const int mi = std::min(img->cols, img->rows);
 
 	// Noise reduction
 	Matrix* bilaterallyFiltered = Matrix::CreateSameSize(*m);
-	Imagery::BilateralFilter(*m, *bilaterallyFiltered, (int)((float)mi / 500.f * BIL_FIL_DIAM), BIL_FIL_SIG_COL, BIL_FIL_SIG_SPACE);
+	Imagery::BilateralFilter(*m, *bilaterallyFiltered, (int)((float)mi / 500.f * BIL_FIL_DIAM), BIL_FIL_SIG_COL * 4, BIL_FIL_SIG_SPACE * 4);
 	StepCompletedWrapper(*bilaterallyFiltered, "1.0-bilaterallyFiltered", savePath);
 
 	// Opening
@@ -66,7 +65,7 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	const float dispersion = Imagery::Dispersion(*m);
 	printf("%sDispersion: %f\n%s", GREEN, dispersion, RESET);
 	// Choose binarization depending on image's dispersion
-	if (dispersion < 500)
+	if (dispersion < 450)
 	{
 		printf("%sUsing adaptive threshold 1\n%s", BLUE, RESET);
 		Imagery::AdaptiveThreshold(*blurred, *binarized, ADAPTIVE_THRESH_BLOCK_SIZE, ADAPTIVE_THRESH_STRENGTH,
@@ -141,12 +140,12 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 
 	DetectionInfo* detectionInfo = new DetectionInfo();
 
+	detectionInfo->img = img;
 	detectionInfo->bestSquare = bestSquare;
 	detectionInfo->e = e;
 	detectionInfo->angle = angle;
 
 	// Free memory
-	delete img;
 	delete m;
 	delete bilaterallyFiltered;
 	delete dilated0;
@@ -172,17 +171,19 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	qDebug() << "Desired square";
 
 	// Extract the Sudoku from the image
-	Matrix* perspective = Imagery::PerspectiveTransform(*detectionInfo->e, *detectionInfo->bestSquare,
-														desiredSquare, squareSize);
-	perspective->SaveAsImg(savePath, "8-perspective");
+	const Matrix** imgsToGetPerspectived = new const Matrix *[2] {detectionInfo->img, detectionInfo->e};
+	Matrix** perspectives = Imagery::PerspectiveTransform(imgsToGetPerspectived, 2,
+														  desiredSquare, squareSize, *detectionInfo->bestSquare);
+	perspectives[0]->SaveAsImg(savePath, "8-perspective0");
+	perspectives[1]->SaveAsImg(savePath, "8-perspective1");
 	qDebug() << "8-perspective";
-	Imagery::RemoveLines(*perspective);
-	perspective->SaveAsImg(savePath, "9-removedLines");
+	Imagery::RemoveLines(*perspectives[1]);
+	perspectives[1]->SaveAsImg(savePath, "9-removedLines");
 	qDebug() << "9-removedLines";
-	emit OnDigitsIsolated(savePath + "/9-removedLines");
+	emit OnDigitsIsolated(savePath + "8-perspective0");
 
 	// Split the Sudoku into cells
-	Matrix** cells = Imagery::Split(*perspective);
+	Matrix** cells = Imagery::Split(*perspectives[1]);
 	const bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) cells, EMPTY_CELL_THRESHOLD);
 	Matrix** cellsDigits0 = GridDetection::ExtractDigits((const Matrix**) cells, emptyCells);
 	for (int i = 0; i < 81; ++i)
@@ -209,7 +210,9 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	}
 
 	// Free memory
-	delete perspective;
+	delete perspectives[0];
+	delete perspectives[1];
+	delete[] perspectives;
 	delete nn;
 	for (int i = 0; i < 81; ++i)
 	{
@@ -222,6 +225,9 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	delete[] cellsDigits;
 	//delete[] resizedCells;
 	delete emptyCells;
+	delete detectionInfo->bestSquare;
+	delete detectionInfo->e;
+	delete detectionInfo->img;
 
 	emit OnDigitsRecognized(digits);
 }

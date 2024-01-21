@@ -12,28 +12,7 @@ namespace GridDetection
 {
 	HoughLine* FindLines(const Matrix& m, int* numLines);
 
-	List*
-	FindIntersections(Line* cartesianLines, int numLines, int imageWidth, int imgHeight,
-					  int* numIntersections);
-
-	List*
-	FindIntersections2(Line* cartesianLines, int numLines, int imageWidth, int imgHeight);
-
-	List*
-	GetSquares(const List* intersections, int numIntersections, float tolerance, int* numSquares);
-
-	List*
-	GetSquares2(const List* intersections, float tolerance, int* numSquares, int numLines);
-
 	Line* HoughLinesToCartesianLines(const HoughLine* houghLines, int numLines, int imgWidth, int imgHeight);
-
-	Square* FindBestSquare(const List* squares, int numSquares, const Matrix& dilated);
-
-	Matrix** ExtractAndCenterCellsDigits(const Matrix** cells, const bool* emptyCells);
-
-	// Extract the Sudoku region from the straightened image
-	Matrix*
-	ExtractSudokuFromStraightImg(const Matrix& straightImage, const Square& sudokuEdges, float rotationAngle);
 
 	Square GetDesiredEdges(const Square& sudokuEdges, float angle, int outputSize);
 

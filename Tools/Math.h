@@ -15,7 +15,7 @@ namespace Math
 	Matrix* Get3x3MatrixInverse(const Matrix& m);
 
 	Matrix* GaussianElimination(const Matrix& a, const Matrix& b, int n);
-};
+}
 
 
 #endif //SUDOKUOCR_MATH_H
