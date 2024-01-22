@@ -97,9 +97,10 @@ void MainWindow::GoToPage0()
 
 void MainWindow::OnImageValidated()
 {
-	setWindowTitle("SudokuOCR - Preprocessing");
+    setWindowTitle("SudokuOCR - Preprocessing");
 	ui->stackedWidget->setCurrentIndex(2);
 	ui->imgDisplay_2->SetImage(imgPath);
+    ui->progressBar_2->setValue(currentStep = 0);
 	connect(&watcher, &QFutureWatcher<DetectionInfo*>::finished, this, [&]()
 	{ detectionInfo = watcher.result(); });
 	QFuture<DetectionInfo*> future = QtConcurrent::run([this]
@@ -109,7 +110,8 @@ void MainWindow::OnImageValidated()
 
 void MainWindow::OnStepCompleted(const QString& stepName)
 {
-	qDebug() << stepName;
+    qDebug() << stepName;
+    ui->progressBar_2->setValue((int)((float)++currentStep/ (float)numSteps * 100.f));
 	ui->imgDisplay_2->SetImage(savePath + stepName + ".png");
 }
 
@@ -151,7 +153,13 @@ void MainWindow::OnDigitModified()
 {
 	Matrix board(9, 9);
 	for (int i = 0; i < 81; ++i)
-		board.data[i] = (float) spinBoxes[i]->value();
+    {
+        const float v = spinBoxes[i]->value();
+        board.data[i] = v;
+
+        // Change color depending on wether the cell is empty. Color names: https://www.w3.org/TR/SVG11/types.html#ColorKeywords
+        spinBoxes[i]->setStyleSheet(QString("QSpinBox  { color: ") + (v ? "aqua" : "darkorange") +" }");
+    }
 
 	Matrix* result = Solver::Solve(board);
 	if (result != nullptr)

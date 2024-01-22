@@ -51,6 +51,8 @@ public slots:
 	void OnDigitsIsolated(const QString& isolatedDigitsPath);
 
 private:
+    const int numSteps = 11;
+    int currentStep = 0;
 	Ui::MainWindow* ui;
 	QString imgPath;
 	QString savePath;

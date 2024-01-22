@@ -370,9 +370,9 @@ void Matrix::Multiply(const Matrix& a, const Matrix& b, Matrix& output)
 #if DEBUG_MODE
 				__m128 first = _mm_loadu_ps(&a[i * a.cols + k]);
 #else
-				__m128 first = _mm_load_ps(&a[i * a.cols + k]);
+				__m128 first = _mm_load_ps(&a.data[i * a.cols + k]);
 #endif
-				__m128 second = _mm_loadu_ps(&b[k * b.cols + j]);
+				__m128 second = _mm_loadu_ps(&b.data[k * b.cols + j]);
 				sum = _mm_add_ps(sum, _mm_mul_ps(first, second));
 			}
 
@@ -388,12 +388,12 @@ void Matrix::Multiply(const Matrix& a, const Matrix& b, Matrix& output)
 			_mm_hadd_ps(sum, sum);
 			float temp[4];
 			_mm_storeu_ps(temp, sum);
-			output[i * output.cols + j] = temp[0] + temp[1] + temp[2] + temp[3];
+			output.data[i * output.cols + j] = temp[0] + temp[1] + temp[2] + temp[3];
 #endif
 
 			// Handle the remaining elements if cols is not a multiple of 4
 			for (; k < a.cols; ++k)
-				output[i * output.cols + j] += a[i * a.cols + k] * b[k * b.cols + j];
+				output.data[i * output.cols + j] += a.data[i * a.cols + k] * b.data[k * b.cols + j];
 
 		}
 	}
@@ -460,8 +460,8 @@ void Matrix::MultiplyByTranspose(const Matrix& a, const Matrix& b, Matrix& outpu
 			int k;
 			for (k = 0; k <= a.cols - 4; k += 4)
 			{
-				__m128 first = _mm_load_ps(&a[i * a.cols + k]);
-				__m128 second = _mm_load_ps(&b[j * b.cols + k]);
+				__m128 first = _mm_load_ps(&a.data[i * a.cols + k]);
+				__m128 second = _mm_load_ps(&b.data[j * b.cols + k]);
 				sum = _mm_add_ps(sum, _mm_mul_ps(first, second));
 			}
 
@@ -475,12 +475,12 @@ void Matrix::MultiplyByTranspose(const Matrix& a, const Matrix& b, Matrix& outpu
 #else
 			float temp[4];
 			_mm_storeu_ps(temp, sum);
-			output[i * output.cols + j] = temp[0] + temp[1] + temp[2] + temp[3];
+			output.data[i * output.cols + j] = temp[0] + temp[1] + temp[2] + temp[3];
 #endif
 
 			// Handle the remaining elements if cols is not a multiple of 4
 			for (; k < a.cols; ++k)
-				output[i * output.cols + j] += a[i * a.cols + k] * b[j * b.cols + k];
+				output.data[i * output.cols + j] += a.data[i * a.cols + k] * b.data[j * b.cols + k];
 
 		}
 	}
@@ -493,7 +493,7 @@ void Matrix::MultiplyByTranspose(const Matrix& a, const Matrix& b, Matrix& outpu
 			for (int k = 0; k < a.cols; k++)
 				sum += a[i * a.cols + k] * b[j * b.cols + k];
 
-			output[i * output.cols + j] = sum;
+			output.data[i * output.cols + j] = sum;
 		}
 	}
 #endif
@@ -527,11 +527,11 @@ void Matrix::TransposeMultiply(const Matrix& a, const Matrix& b, Matrix& output)
 
             float temp[4];
             _mm_storeu_ps(temp, sum);
-            output[i * output.cols + j] = temp[0] + temp[1] + temp[2] + temp[3];
+            output.data[i * output.cols + j] = temp[0] + temp[1] + temp[2] + temp[3];
 
             // Handle the remaining elements if cols is not a multiple of 4
             for (; k < a.rows; ++k)
-                output[i * output.cols + j] += a[k * a.cols + i] * b[k * b.cols + j];
+                output.data[i * output.cols + j] += a[k * a.cols + i] * b[k * b.cols + j];
 
         }
     }
@@ -556,11 +556,11 @@ void Matrix::TransposeMultiply(const Matrix& a, const Matrix& b, Matrix& output)
             sum = _mm_hadd_ps(sum, sum);
 
             // Store the result in the output matrix
-            _mm_store_ss(&output[i * output.cols + j], sum);
+            _mm_store_ss(&output.data[i * output.cols + j], sum);
 
             // Handle the remaining elements if rows is not a multiple of 4
             for (; k < a.rows; ++k)
-                output[i * output.cols + j] += a[k * a.cols + i] * b[k * b.cols + j];
+                output.data[i * output.cols + j] += a[k * a.cols + i] * b[k * b.cols + j];
         }
     }
 #else*/
@@ -622,10 +622,10 @@ void Matrix::LinearMultiply(const Matrix& in, Matrix& output, const Matrix& othe
 	}
 
 	for (; i < in.matrixSize; i++)
-		output[i] = in[i] * other[i];
+		output.data[i] = in.data[i] * other.data[i];
 #else
 	for (int i = 0; i < in.size; i++)
-		output[i] = in[i] * other[i];
+		output.data[i] = in.data[i] * other.data[i];
 #endif
 }
 
@@ -856,10 +856,10 @@ Matrix& Matrix::operator+=(const Matrix& other)
 	}
 
 	for (; i < matrixSize; i++)
-		data[i] += +other[i];
+		data[i] += +other.data[i];
 #else
 	for (int i = 0; i < size; i++)
-		data[i] += other[i];
+		data[i] += other.data[i];
 #endif
 
 	return *this;
