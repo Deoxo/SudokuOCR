@@ -1,5 +1,6 @@
 #include "ImageDisplay.h"
 #include "Imagery/Imagery.h"
+#include "Tools/Settings.h"
 
 ImageDisplay::ImageDisplay(QWidget* parent) : QLabel(parent)
 {
@@ -27,7 +28,7 @@ void ImageDisplay::UpdateImage()
 void ImageDisplay::SetImage(const QString& imgPath)
 {
 	// Create a QPixmap from the QImage
-	originalPixmap = QPixmap::fromImage(Imagery::LoadImg(imgPath, 2000));
+	originalPixmap = QPixmap::fromImage(Imagery::LoadImg(imgPath, MAX_IMG_SIZE));
 	setMinimumSize(originalPixmap.size() / 3);
 	UpdateImage();
 }

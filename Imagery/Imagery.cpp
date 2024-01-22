@@ -16,7 +16,7 @@ namespace Imagery
 {
 	Matrix* LoadImageAsMatrix(const QString& imagePath)
 	{
-		QImage image = LoadImg(imagePath, 2000);
+		QImage image = LoadImg(imagePath, MAX_IMG_SIZE);
 		if (image.isNull())
 			throw std::runtime_error("Failed to load image at " + imagePath.toStdString());
 
@@ -830,8 +830,8 @@ namespace Imagery
 		return res;
 	}
 
-	// Apply the inverse perspective transformation to a point (ie. map the point from the output image to the input image)
-	Point ApplyInversePerspectiveTransformation(const Matrix& inversePerspectiveMatrix, const Point& p)
+	// Apply a perspective transformation to a point
+	Point ApplyPerspectiveTransformation(const Matrix& perspectiveMatrix, const Point& p)
 	{
 		// Create the point in homogeneous coordinates
 		Matrix homogeneousPoint(3, 1);
@@ -839,9 +839,9 @@ namespace Imagery
 		homogeneousPoint.data[1] = (float) p.y;
 		homogeneousPoint.data[2] = 1.f;
 
-		// Apply the inverse perspective transformation
+		// Apply the perspective transformation
 		Matrix out(3, 1);
-		Matrix::Multiply(inversePerspectiveMatrix, homogeneousPoint, out);
+		Matrix::Multiply(perspectiveMatrix, homogeneousPoint, out);
 
 		// Divide by the last coordinate to get the real coordinates
 		Point res;
@@ -854,43 +854,29 @@ namespace Imagery
 	}
 
 	// Apply the same perspective transformation to several images with identical size
-	Matrix**
-	PerspectiveTransform(const Matrix** imgs, const int numImgs, const Square& desiredEdges, const int squareSize,
-						 const Square& sudokuEdges)
+	Matrix*
+	PerspectiveTransform(const Matrix& img, const int squareSize, const Matrix& inversePerspectiveMatrix)
 	{
-		// Compute perspective matrices
-		Matrix* perspectiveMatrix = BuildPerspectiveMatrix(sudokuEdges, desiredEdges);
-		Matrix* inversePerspectiveMatrix = Math::Get3x3MatrixInverse(*perspectiveMatrix);
-
 		// Apply the perspective transformation
-		Matrix** res = new Matrix* [numImgs];
-		for (int i = 0; i < numImgs; ++i)
-			res[i] = new Matrix(squareSize, squareSize);
+		Matrix* res = new Matrix(squareSize, squareSize);
 
-		const int width = imgs[0]->cols;
-		const int height = imgs[0]->rows;
+		const int width = img.cols;
+		const int height = img.rows;
 		for (int y = 0; y < squareSize; y++)
 		{
 			for (int x = 0; x < squareSize; x++)
 			{
 				const Point p = {x, y};
-				const Point originalPoint = ApplyInversePerspectiveTransformation(*inversePerspectiveMatrix, p);
+				const Point originalPoint = ApplyPerspectiveTransformation(inversePerspectiveMatrix, p);
 
 				if (originalPoint.x < 0 || originalPoint.y < 0 || originalPoint.x >= width ||
 					originalPoint.y >= height)
-					for (int i = 0; i < numImgs; ++i)
-						res[i]->data[y * res[i]->cols + x] = 0;
+					res->data[y * res->cols + x] = 0;
 				else
-					for (int i = 0; i < numImgs; ++i)
-						res[i]->data[y * res[i]->cols + x] = imgs[i]->data[originalPoint.y * width +
-																		   originalPoint.x];
+					res->data[y * res->cols + x] = img.data[originalPoint.y * width + originalPoint.x];
 
 			}
 		}
-
-		// Free memory
-		delete perspectiveMatrix;
-		delete inversePerspectiveMatrix;
 
 		return res;
 	}
@@ -929,9 +915,10 @@ namespace Imagery
 		return std::sqrt(dx * dx + dy * dy);
 	}
 
-	Matrix** CenterAndResizeDigits(const Matrix** cells, const bool* emptyCells)
+	Matrix** CenterAndResizeDigits(const Matrix** cells, const bool* emptyCells, Point* avgDigitsCellOffset)
 	{
 		Matrix** centeredDigits = new Matrix* [81];
+		Point digitsCellCenter[81];
 		for (int i = 0; i < 81; ++i)
 		{
 			centeredDigits[i] = new Matrix(28, 28);
@@ -970,10 +957,13 @@ namespace Imagery
 						ey = y;
 			}
 
-			const float rx = (float) (ex - sx) / 17.f;
-			const float ry = (float) (ey - sy) / 17.f;
-			const float fsy = (float) sy;
-			const float fsx = (float) sx;
+			const float dx = (float) (ex - sx);
+			const float dy = (float) (ey - sy);
+			digitsCellCenter[i] = {(int) (dx / 2.f), (int) (dy / 2.f)};
+			const float rx = (float) dx / 17.f; // horizontal ratio
+			const float ry = (float) dy / 17.f; // vertical ratio
+			const float fsy = (float) sy; // horizontal start
+			const float fsx = (float) sx; // vertical start
 			for (int y = 5; y < 28 - 5; ++y)
 			{
 				for (int x = 5; x < 28 - 5; ++x)
@@ -983,6 +973,20 @@ namespace Imagery
 				}
 			}
 		}
+
+		// Compute avgDigitsCellOffset
+		int c = 0;
+		for (int i = 0; i < 81; ++i)
+		{
+			if (emptyCells[i])
+				continue;
+			Point p = digitsCellCenter[i];
+			avgDigitsCellOffset->x += p.x;
+			avgDigitsCellOffset->y += p.y;
+			c++;
+		}
+		avgDigitsCellOffset->x = (int) ((float) avgDigitsCellOffset->x / (float) c);
+		avgDigitsCellOffset->y = (int) ((float) avgDigitsCellOffset->y / (float) c);
 
 		return centeredDigits;
 	}

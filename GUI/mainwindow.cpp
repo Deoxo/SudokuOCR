@@ -168,7 +168,11 @@ void MainWindow::OnAllDigitsValidated()
 		board->data[i] = (float) spinBoxes[i]->value();
 
 	Matrix* result = Solver::Solve(*board);
-	Core::SaveSudokuImage(*result, 600, savePath + "result.png");
+	// Remove original digits so that they won't be printed on the result image
+	for (int i = 0; i < 81; ++i)
+		if (board->data[i] != 0)
+			result->data[i] = 0;
+	core->SaveSudokuImage(*result, imgPath, savePath + "result.png", savePath + "8-perspective0.png");
 	ui->imgDisplay_5->SetImage(savePath + "result.png");
 	ui->stackedWidget->setCurrentIndex(5);
 }

@@ -2,7 +2,7 @@
 #include "Imagery/Imagery.h"
 #include "Imagery/GridDetection.h"
 #include "Tools/Settings.h"
-#include "Network.h"
+#include "Tools/Math.h"
 #include <QDebug>
 #include <iostream>
 
@@ -182,11 +182,10 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, const
 														  squareSize - 1);
 	qDebug() << "Desired square";
 
-	// Extract the Sudoku from the image
-	const Matrix** tmp = new const Matrix* [1]{detectionInfo->e};
-	Matrix** p = Imagery::PerspectiveTransform(tmp, 1,
-											   desiredSquare, squareSize, *detectionInfo->bestSquare);
-	Matrix* perspective = p[0];
+	// Extract the Sudoku from the image/
+	const Matrix* perspectiveMatrix = Imagery::BuildPerspectiveMatrix(*detectionInfo->bestSquare, desiredSquare);
+	const Matrix* inversePerspectiveMatrix = Math::Get3x3MatrixInverse(*perspectiveMatrix);
+	Matrix* perspective = Imagery::PerspectiveTransform(*detectionInfo->e, squareSize, *inversePerspectiveMatrix);
 	qDebug() << "8-perspective";
 	Imagery::RemoveLines(*perspective);
 	qDebug() << "9-removedLines";
@@ -195,7 +194,7 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, const
 	Matrix** cells = Imagery::Split(*perspective);
 	const bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) cells, EMPTY_CELL_THRESHOLD);
 	Matrix** cellsDigits0 = GridDetection::ExtractDigits((const Matrix**) cells, emptyCells);
-	Matrix** cellsDigits = Imagery::CenterAndResizeDigits((const Matrix**) cellsDigits0, emptyCells);
+	Matrix** cellsDigits = Imagery::CenterAndResizeDigits((const Matrix**) cellsDigits0, emptyCells, nullptr);
 
 	// Digit recognition
 	for (int i = 0; i < 81; i++)
@@ -216,7 +215,6 @@ void DigitDetection(DetectionInfo* detectionInfo, const QString& savePath, const
 		delete cellsDigits0[i];
 		delete cellsDigits[i];
 	}
-	delete[] p;
 	delete[] cells;
 	delete[] cellsDigits0;
 	delete[] cellsDigits;

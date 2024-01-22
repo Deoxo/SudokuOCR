@@ -132,9 +132,8 @@ namespace Imagery
 
 	Matrix* BuildPerspectiveMatrix(const Square& sudokuEdges, const Square& desiredEdges);
 
-	Matrix**
-	PerspectiveTransform(const Matrix** imgs, const int numImgs, const Square& desiredEdges, const int squareSize,
-						 const Square& sudokuEdges);
+	Matrix*
+	PerspectiveTransform(const Matrix& img, int squareSize, const Matrix& inversePerspectiveMatrix);
 
 	void FloodFill(Matrix& img, QPoint pos, int halfWindowSize, std::list<QPoint>& group, float target);
 
@@ -144,9 +143,11 @@ namespace Imagery
 	// Compute the distance between two points
 	[[nodiscard]] float Dist(const QPoint& a, const QPoint& b);
 
-	Matrix** CenterAndResizeDigits(const Matrix** cells, const bool* emptyCells);
+	Matrix** CenterAndResizeDigits(const Matrix** cells, const bool* emptyCells, Point* avgDigitsCellOffset);
 
 	QImage LoadImg(const QString& path, int maxSize = -1);
+
+	Point ApplyPerspectiveTransformation(const Matrix& perspectiveMatrix, const Point& p);
 }
 
 #endif //SUDOKUOCR_IMAGERY_H

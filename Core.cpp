@@ -2,6 +2,7 @@
 #include "Imagery/GridDetection.h"
 #include "Tools/Settings.h"
 #include "NeuralNetwork/Network.h"
+#include "Tools/Math.h"
 #include <QDir>
 #include <iostream>
 #include <QPainter>
@@ -163,7 +164,7 @@ DetectionInfo* Core::BordersDetection(const QString& imagePath, const QString& s
 	return detectionInfo;
 }
 
-void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath) const
+void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath)
 {
 	const int sw = detectionInfo->e->cols, sh = detectionInfo->e->rows;
 	const int squareSize = std::min(sw, sh);
@@ -171,25 +172,26 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	qDebug() << "Desired square";
 
 	// Extract the Sudoku from the image
-	const Matrix** imgsToGetPerspectived = new const Matrix *[2] {detectionInfo->img, detectionInfo->e};
-	Matrix** perspectives = Imagery::PerspectiveTransform(imgsToGetPerspectived, 2,
-														  desiredSquare, squareSize, *detectionInfo->bestSquare);
-	perspectives[0]->SaveAsImg(savePath, "8-perspective0");
-	perspectives[1]->SaveAsImg(savePath, "8-perspective1");
+	perspectiveMatrix = Imagery::BuildPerspectiveMatrix(*detectionInfo->bestSquare, desiredSquare);
+	inversePerspectiveMatrix = Math::Get3x3MatrixInverse(*perspectiveMatrix);
+	Matrix* perspective0 = Imagery::PerspectiveTransform(*detectionInfo->img, squareSize, *inversePerspectiveMatrix);
+	Matrix* perspective1 = Imagery::PerspectiveTransform(*detectionInfo->e, squareSize, *inversePerspectiveMatrix);
+	perspective0->SaveAsImg(savePath, "8-perspective0");
+	perspective1->SaveAsImg(savePath, "8-perspective1");
 	qDebug() << "8-perspective";
-	Imagery::RemoveLines(*perspectives[1]);
-	perspectives[1]->SaveAsImg(savePath, "9-removedLines");
+	Imagery::RemoveLines(*perspective1);
+	perspective1->SaveAsImg(savePath, "9-removedLines");
 	qDebug() << "9-removedLines";
 	emit OnDigitsIsolated(savePath + "8-perspective0");
 
 	// Split the Sudoku into cells
-	Matrix** cells = Imagery::Split(*perspectives[1]);
+	Matrix** cells = Imagery::Split(*perspective1);
 	const bool* emptyCells = Imagery::GetEmptyCells((const Matrix**) cells, EMPTY_CELL_THRESHOLD);
 	Matrix** cellsDigits0 = GridDetection::ExtractDigits((const Matrix**) cells, emptyCells);
 	for (int i = 0; i < 81; ++i)
 		if (!emptyCells[i])
 			cellsDigits0[i]->SaveAsImg(savePath, "10-" + QString::number(i / 10) + QString::number(i % 10));
-	Matrix** cellsDigits = Imagery::CenterAndResizeDigits((const Matrix**) cellsDigits0, emptyCells);
+	Matrix** cellsDigits = Imagery::CenterAndResizeDigits((const Matrix**) cellsDigits0, emptyCells, &avgDigitCellOffset);
 	for (int i = 0; i < 81; ++i)
 		if (!emptyCells[i])
 			cellsDigits[i]->SaveAsImg(savePath, "11-" + QString::number(i / 10) + QString::number(i % 10));
@@ -210,9 +212,8 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 	}
 
 	// Free memory
-	delete perspectives[0];
-	delete perspectives[1];
-	delete[] perspectives;
+	delete perspective0;
+	delete perspective1;
 	delete nn;
 	for (int i = 0; i < 81; ++i)
 	{
@@ -238,74 +239,70 @@ void Core::StepCompletedWrapper(const Matrix& img, const QString& stepName, cons
 	emit StepCompleted(stepName);
 }
 
-void Core::SaveSudokuImage(const Matrix& sudokuMatrix, const int size, const QString& filePath)
+void Core::SaveSudokuImage(const Matrix& sudokuMatrix, const QString& imgPath, const QString& savePath,
+						   const QString& perspective0Path)
 {
-	// Adjust the image size to fit the larger borders and lines
-	int imageSize = size + 5; // Increase the size by 10 pixels for larger borders
-
-	// Create an image with the adjusted size
-	QImage sudokuImage(imageSize, imageSize, QImage::Format_RGB32);
-	sudokuImage.fill(Qt::white); // Set background color to white
+	const QImage perspective0 = Imagery::LoadImg(perspective0Path, MAX_IMG_SIZE);
 
 	// Create a QPainter to draw on the image
-	QPainter painter(&sudokuImage);
+	QImage straightRes(perspective0.size(), QImage::Format_RGB32);
+	QPainter painter(&straightRes);
+	straightRes.fill(Qt::white);
 	painter.setRenderHint(QPainter::Antialiasing, true);
 
-	// Set font properties
-	QFont font("Arial", 20);
-	painter.setFont(font);
-
 	// Calculate cell size based on the image dimensions and the number of rows and columns
-	int cellSize = size / sudokuMatrix.cols;
+	const int cellSize = perspective0.width() / sudokuMatrix.cols;
 
-	// Calculate block size (3x3 block)
-	int blockSize = size / 3;
-
-	// Draw larger borders on the outside
-	painter.drawRect(0, 0, imageSize - 1, imageSize - 1);
+	// Set font properties
+	QFont font("Arial", cellSize / 2);
+	painter.setFont(font);
+	QPen pen(Qt::red);
+	pen.setWidth(2);
+	painter.setPen(pen);
+	painter.setBrush(Qt::red);
 
 	// Loop through the Sudoku matrix and draw digits, borders, and lines
 	for (int row = 0; row < sudokuMatrix.rows; ++row)
 	{
 		for (int col = 0; col < sudokuMatrix.cols; ++col)
 		{
-			int digit = static_cast<int>(sudokuMatrix.data[row * sudokuMatrix.cols + col]);
+			const int digit = static_cast<int>(sudokuMatrix.data[row * sudokuMatrix.cols + col]);
+			if (digit == 0)
+				continue;
 
 			// Calculate the position of the cell
-			int x = col * cellSize + 5; // Offset by 5 pixels for larger borders
-			int y = row * cellSize + 5; // Offset by 5 pixels for larger borders
+			const int digitX = col * cellSize + cellSize * 1 / 4 + avgDigitCellOffset.x;
+			const int digitY = row * cellSize + cellSize * 3 / 5 + avgDigitCellOffset.y;
 
-			// Draw borders between blocks
-			if (col % 3 == 0 && col > 0)
-				painter.drawRect(x, y - 1, 1, blockSize + 1);
-
-			if (row % 3 == 0 && row > 0)
-				painter.drawRect(x - 1, y, blockSize + 1, 1);
-
-			// Draw borders around each cell
-			painter.drawRect(x, y, cellSize, cellSize);
-
-			// Skip drawing zeros (empty cells)
-			if (digit != 0)
-			{
-				// Calculate the position of the digit in the cell
-				int digitX = x + cellSize * 2 / 5;
-				int digitY = y + cellSize * 2 / 3;
-
-				// Draw the digit
-				painter.drawText(digitX, digitY, QString::number(digit));
-			}
+			// Draw the digit
+			painter.drawText(digitX, digitY, QString::number(digit));
 		}
 	}
 
-	// Outside border
-	painter.setPen(QPen(Qt::black, 10));
-	painter.drawRect(0, 0, imageSize - 1, imageSize - 1);
+	QImage perspectiveRes = Imagery::LoadImg(imgPath, MAX_IMG_SIZE);
+	QRgb white = qRgb(255, 255, 255);
+	for (int y = 0; y < perspectiveRes.height(); ++y)
+	{
+		for (int x = 0; x < perspectiveRes.width(); ++x)
+		{
+			Point p = Imagery::ApplyPerspectiveTransformation(*perspectiveMatrix, {x,y});
+			if (p.x < 0 || p.x >= straightRes.width() || p.y < 0 || p.y >= straightRes.height())
+				continue;
+			if (straightRes.pixel(p.x, p.y) != white)
+				perspectiveRes.setPixel(x, y, straightRes.pixel(p.x, p.y));
+		}
+	}
 
 	// Save the image to the specified file path
-	if (!sudokuImage.save(filePath))
+	if (!perspectiveRes.save(savePath))
 	{
 		// Handle the case where saving fails
 		qDebug() << "Error: Unable to save the Sudoku image.";
 	}
+}
+
+Core::~Core()
+{
+	delete perspectiveMatrix;
+	delete inversePerspectiveMatrix;
 }
