@@ -66,7 +66,7 @@ void ImgSelectorButton::SelectFile()
 	fileDialogFilters[fileDialogFilters.length() - 1] = ')';
 
 	// Opens a file selector dialog
-	QString filePath = QFileDialog::getOpenFileName(this, "Select Image", "./Images", fileDialogFilters);
+	QString filePath = QFileDialog::getOpenFileName(this, "Select Image", QCoreApplication::applicationDirPath() + "/Images", fileDialogFilters);
 	if (!filePath.isEmpty())
 			emit fileSelected(filePath);
 }

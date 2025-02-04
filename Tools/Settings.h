@@ -16,7 +16,7 @@
 #define POOL_FILTERS_SIZE 2
 #define POOL_STRIDE 2
 
-#define SAVE_FOLD "out"
+#define SAVE_FOLD QString(std::getenv("HOME")) + "/out/"
 
 #define BIL_FIL_DIAM 3
 #define BIL_FIL_SIG_COL 3.f

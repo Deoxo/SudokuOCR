@@ -305,7 +305,7 @@ void Matrix::SaveAsImg(const QString& path, const QString& imgName) const
 		}
 	}
 
-	QString fullPath = QDir::toNativeSeparators(path + "/" + imgName + ".png");
+	QString fullPath = QDir::toNativeSeparators(path + imgName + ".png");
 
 	if (!image.save(fullPath, "PNG"))
 		throw std::runtime_error("Error while saving image at " + fullPath.toStdString());

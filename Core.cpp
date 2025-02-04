@@ -6,6 +6,7 @@
 #include <QDir>
 #include <iostream>
 #include <QPainter>
+#include <QCoreApplication>
 
 Core::Core()
 = default;
@@ -198,7 +199,7 @@ void Core::DigitDetection(DetectionInfo * detectionInfo, const QString& savePath
 
 	// Digit recognition
 	Matrix* digits = new Matrix(9, 9);
-	NeuralNetwork* nn = NeuralNetwork::LoadFromFile("./nn3.bin");
+	NeuralNetwork* nn = NeuralNetwork::LoadFromFile(QCoreApplication::applicationDirPath() + "/nn3.bin");
 	for (int i = 0; i < 81; i++)
 	{
 		if (emptyCells[i])
